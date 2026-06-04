@@ -98,26 +98,7 @@ impl std::ops::BitOr for BringAlong {
     type Output = BringAlong;
     fn bitor(self, rhs: BringAlong) -> BringAlong { BringAlong(self.0 | rhs.0) }
 }
-
-/// Legacy compatibility with [`CommentAnchor`]-based code.
-///
-/// | `CommentAnchor` | Equivalent [`BringAlong`] |
-/// |---|---|
-/// | `Preceding` | `BringAlong::NOTHING` |
-/// | `Following` | `BringAlong::COMMENTS_ABOVE` |
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CommentAnchor {
-    Preceding,
-    Following,
-}
-
-impl From<CommentAnchor> for BringAlong {
-    fn from(a: CommentAnchor) -> BringAlong {
-        match a { CommentAnchor::Preceding => BringAlong::NOTHING, CommentAnchor::Following => BringAlong::COMMENTS_ABOVE }
-    }
-}
-
-
+// ============================================================
 // Helpers
 // ============================================================
 
@@ -495,29 +476,25 @@ impl Editor {
     /// Formatting (comments, whitespace, key decor) is preserved for each
     /// entry because entire byte ranges are moved, not individual lines.
     ///
-    /// Comments between entries are associated with the **preceding** entry.
-    /// Use [`reorder_root_anchored`](Editor::reorder_root_anchored) with
-    /// [`CommentAnchor::Following`] to associate them with the following entry.
+    /// Use [`reorder_root_bring`](Editor::reorder_root_bring) with
+    /// a [`BringAlong`] flag to change what else moves with each entry.
     pub fn reorder_root(&mut self, order: &[&str]) -> &mut Self {
-        self.reorder_root_anchored(order, CommentAnchor::Preceding)
+        self.reorder_root_bring(order, BringAlong::NOTHING)
     }
 
-    /// Reorder root-level entries with explicit comment association.
+    /// Reorder root-level entries, specifying what adjacent text to carry.
     ///
-    /// See [`CommentAnchor`] for concrete before/after examples.
+    /// Pass `BringAlong::NOTHING` for the default behaviour (only the entries
+    /// themselves move).  Pass `BringAlong::COMMENTS_ABOVE` to bring
+    /// `#`-comment lines that precede each section header, or combine flags
+    /// with `|`:
     ///
-    /// `anchor` controls which entry "owns" comments that appear between
-    /// two root entries:
-    ///
-    /// - [`CommentAnchor::Preceding`] (default, `reorder_root`) — comments
-    ///   stay with the entry above them.  Structural default: the TOML spec
-    ///   does not define comment association.
-    ///
-    /// - [`CommentAnchor::Following`] — comments stay with the entry below
-    ///   them.  Use this when your project convention places comments above
-    ///   the section they describe (e.g., pont-style profile configs).
-    pub fn reorder_root_anchored(&mut self, order: &[&str], anchor: CommentAnchor) -> &mut Self {
-        let tag = match anchor { CommentAnchor::Preceding => None, CommentAnchor::Following => Some("following".to_string()) };
+    /// ```ignore
+    /// use tomlini::editor::BringAlong;
+    /// doc.edit().reorder_root_bring(&order, BringAlong::COMMENTS_ABOVE | BringAlong::COMMENTS_BELOW).commit()?;
+    /// ```
+    pub fn reorder_root_bring(&mut self, order: &[&str], bring: BringAlong) -> &mut Self {
+        let tag = if bring.is_empty() { None } else { Some((bring.0).to_string()) }; 
         self.ops.push(Op {
             kind: OpKind::ReorderRoot, table: Vec::new(), key: String::new(), value: String::new(),
             prefix: Some(order.join(",")), suffix: tag,
@@ -1382,22 +1359,22 @@ impl Editor {
                     all_starts.sort_by_key(|(_, s)| *s);
 
                     // For Following anchor: extend each entry's start backward
-                    // to include comment lines directly above it (no blank-line gap).
-                    let is_following = op.suffix.as_deref() == Some("following");
-                    if is_following && all_starts.len() > 1 {
+                    let bring = op.suffix.as_deref()
+                        .and_then(|s| s.parse::<u8>().ok())
+                        .map(BringAlong)
+                        .unwrap_or(BringAlong::NOTHING);
+                    if bring.contains(BringAlong::COMMENTS_ABOVE) && all_starts.len() > 1 {
                         for idx in 1..all_starts.len() {
                             let mut pos = all_starts[idx].1 as usize;
                             // Walk back to the previous \n before this entry
                             if pos > 0 { pos -= 1; }
                             while pos > 0 && doc.source.as_bytes()[pos] != b'\n' { pos -= 1; }
-                            // Now pos is at a \n. Check if the line above is a comment.
-                            // Walk backward, collecting comment lines until a blank line.
+                            // Now pos is at a \n. Walk backward collecting comment lines.
                             let mut line_start = pos;
                             while line_start > 0 {
                                 let line_end = line_start;
                                 line_start -= 1;
                                 while line_start > 0 && doc.source.as_bytes()[line_start - 1] != b'\n' { line_start -= 1; }
-                                // Check if this line is a comment (leading `#` after optional whitespace)
                                 let line = &doc.source[line_start..line_end];
                                 let is_comment = line.trim_start().starts_with('#');
                                 if is_comment {
@@ -2138,14 +2115,15 @@ impl<'a> EditorHandle<'a> {
         self
     }
 
-    /// Queue reordering with explicit comment association.
+    /// Queue reordering with explicit [`BringAlong`] flags.
     ///
-    /// See [`Editor::reorder_root_anchored`] for details.
-    pub fn reorder_root_anchored(&mut self, order: &[&str], anchor: CommentAnchor) -> &mut Self {
-        self.editor.reorder_root_anchored(order, anchor);
+    /// See [`Editor::reorder_root_bring`] for details.
+    pub fn reorder_root_bring(&mut self, order: &[&str], bring: BringAlong) -> &mut Self {
+        self.editor.reorder_root_bring(order, bring);
         self
     }
 
+    /// Queue promoting of a key from a sub-table to the document root.
     /// Queue promoting of a key from a sub-table to the document root.
     ///
     /// See [`Editor::promote_key`] for details.

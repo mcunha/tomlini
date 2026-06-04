@@ -809,7 +809,7 @@ fn test_reorder_root_following_anchor_moves_comment_with_section() {
     let input = "base = \"my-base\"\n# comment for meta\n[meta]\nkind = \"leaf\"\n";
     let mut doc = parse(input).unwrap();
     let mut editor = tomlini::editor::Editor::new();
-    editor.reorder_root_anchored(&["meta", "base"], tomlini::editor::CommentAnchor::Following).commit(&mut doc).unwrap();
+    editor.reorder_root_bring(&["meta", "base"], tomlini::editor::BringAlong::COMMENTS_ABOVE).commit(&mut doc).unwrap();
     let out = doc.to_string();
     let comment_pos = out.find("# comment for meta").unwrap();
     let meta_pos = out.find("[meta]").unwrap();
