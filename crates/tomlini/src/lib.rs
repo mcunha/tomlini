@@ -200,6 +200,23 @@ pub struct ParseError {
     pub msg: &'static str,
 }
 
+#[cfg(feature = "std")]
+impl std::fmt::Display for ParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "parse error at byte {}: {}", self.pos, self.msg)
+    }
+}
+
+#[cfg(all(feature = "alloc", not(feature = "std")))]
+impl alloc::fmt::Display for ParseError {
+    fn fmt(&self, f: &mut alloc::fmt::Formatter<'_>) -> alloc::fmt::Result {
+        write!(f, "parse error at byte {}: {}", self.pos, self.msg)
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for ParseError {}
+
 // ---------------------------------------------------------------------------
 // Parser: lex helpers — generic over SpanSink
 // ---------------------------------------------------------------------------

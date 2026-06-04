@@ -19,3 +19,21 @@ workspace = true
 
 [dev-dependencies]
 proptest = "1.11.0"
+
+[[example]]
+name = "basic-edit"
+
+[[example]]
+name = "batch-migrate"
+
+[[example]]
+name = "pont-fmt"
+
+[[example]]
+name = "containers"
+
+[[example]]
+name = "validation"
+
+[[example]]
+name = "ini-edit"
