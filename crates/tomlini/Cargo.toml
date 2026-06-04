@@ -6,7 +6,6 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 documentation.workspace = true
-publish = false
 description = "SAX TOML/INI parser and editor. Zero-dependency, no footguns."
 keywords = ["toml", "ini", "parser", "editor", "format-preserving", "no-std", "config"]
 categories = ["config", "parser-implementations", "text-editors", "no-std"]

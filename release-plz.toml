@@ -10,11 +10,9 @@ name = "toml_benchmarks"
 publish = false
 
 # Publish order — tomlini first (tomlini_serde depends on it).
-# Set `publish = true` after removing `publish = false` from the Cargo.toml files.
 [[package]]
 name = "tomlini"
-publish = false
-
+publish = true
 [[package]]
 name = "tomlini_serde"
-publish = false
+publish = true

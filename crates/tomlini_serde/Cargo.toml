@@ -7,8 +7,6 @@ license.workspace = true
 repository.workspace = true
 documentation.workspace = true
 description = "Serde Deserializer powered by tomlini's flat-span parser"
-publish = false
-
 
 [dependencies]
 tomlini = { path = "../tomlini", default-features = false, features = ["alloc"] }
