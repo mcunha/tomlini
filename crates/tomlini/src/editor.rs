@@ -59,30 +59,65 @@ struct Op {
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum OpKind { Set, Insert, Remove, InsertSection, ReplaceSection, ClearSection, RenameSection, RenameKey, MoveKey, PromoteKey, MoveKeyCreate, ArrayPush, ArraySet, ArrayInsert, ArrayRemove, AotPush, AotSet, AotRemove, InlineSet, InlineInsert, InlineRemove, ReorderRoot }
 
-/// How comments between root entries are associated during
-/// [`reorder_root_anchored`](Editor::reorder_root_anchored).
+/// Specifies what adjacent text to carry when relocating a key or section.
 ///
-/// Given this input and `reorder_root(&["meta", "base"])`:
+/// Combine flags with `|`:
 ///
-/// ```toml
-/// base = "my-base"
-/// # comment
-/// [meta]
-/// kind = "leaf"
+/// ```ignore
+/// use tomlini::editor::BringAlong;
+/// let flags = BringAlong::COMMENTS_ABOVE | BringAlong::COMMENTS_BELOW;
+/// doc.edit().move_key_bring("a.k", "b.k", flags).commit()?;
 /// ```
 ///
-/// | Variant | Output |
-/// |---------|--------|
-/// | `Preceding` | `[meta]\nkind = "leaf"\nbase = "my-base"\n# comment\n` — comment follows `base` |
-/// | `Following` | `[meta]\n# comment\nkind = "leaf"\nbase = "my-base"\n` — comment stays with `[meta]` |
+/// | Flag | Effect |
+/// |------|--------|
+/// | `NOTHING` | Only the item itself moves. |
+/// | `COMMENTS_ABOVE` | `#`-comment lines directly above the item (until a blank line or preceding item). |
+/// | `COMMENTS_BELOW` | `#`-comment lines directly below the item (until a blank line or following item). |
+/// | `EVERYTHING_ABOVE` | Everything above — comments, whitespace, blank lines — until the preceding item. |
+/// | `EVERYTHING_BELOW` | Everything below — comments, whitespace, blank lines — until the following item. |
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BringAlong(u8);
+
+impl BringAlong {
+    pub const NOTHING: BringAlong = BringAlong(0);
+    pub const COMMENTS_ABOVE: BringAlong = BringAlong(1 << 0);
+    pub const COMMENTS_BELOW: BringAlong = BringAlong(1 << 1);
+    pub const EVERYTHING_ABOVE: BringAlong = BringAlong(1 << 2);
+    pub const EVERYTHING_BELOW: BringAlong = BringAlong(1 << 3);
+
+    pub fn contains(self, other: BringAlong) -> bool { (self.0 & other.0) == other.0 }
+    pub fn is_empty(self) -> bool { self.0 == 0 }
+}
+
+impl Default for BringAlong {
+    fn default() -> Self { BringAlong::NOTHING }
+}
+
+impl std::ops::BitOr for BringAlong {
+    type Output = BringAlong;
+    fn bitor(self, rhs: BringAlong) -> BringAlong { BringAlong(self.0 | rhs.0) }
+}
+
+/// Legacy compatibility with [`CommentAnchor`]-based code.
+///
+/// | `CommentAnchor` | Equivalent [`BringAlong`] |
+/// |---|---|
+/// | `Preceding` | `BringAlong::NOTHING` |
+/// | `Following` | `BringAlong::COMMENTS_ABOVE` |
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CommentAnchor {
-    /// Comments stay with the preceding entry (default, structural).
     Preceding,
-    /// Comments stay with the following entry — use this when your project
-    /// convention places comments above the section they describe.
     Following,
 }
+
+impl From<CommentAnchor> for BringAlong {
+    fn from(a: CommentAnchor) -> BringAlong {
+        match a { CommentAnchor::Preceding => BringAlong::NOTHING, CommentAnchor::Following => BringAlong::COMMENTS_ABOVE }
+    }
+}
+
+
 // Helpers
 // ============================================================
 
