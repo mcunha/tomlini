@@ -67,6 +67,15 @@ let errors = doc.validate(tomlini::ValidationMode::Relaxed);
 let errors = doc.validate(tomlini::ValidationMode::Strict);
 ```
 
-## License
+## Acknowledgments
 
+This crate builds on the excellent work of the [toml-rs](https://github.com/toml-rs/toml) project:
+
+- **Ed Page** and contributors for the `toml_edit`, `toml_parser`, and `toml_writer` crates
+  whose architecture and spec knowledge informed this implementation
+- **`toml_datetime`** by the toml-rs team — the datetime types and parser used by the
+  serde bridge
+- **`toml-test`** by the TOML community — the compliance suite that validates correctness
+
+## License
 MIT OR Apache-2.0

@@ -54,6 +54,13 @@
 //! path preserves comments, whitespace, and key order unless explicitly
 //! overridden with formatting modifiers.
 //!
+//! ## Acknowledgments
+//!
+//! Built on the excellent work of the [toml-rs](https://github.com/toml-rs/toml) project:
+//! [`toml_edit`](https://crates.io/crates/toml_edit),
+//! [`toml_datetime`](https://crates.io/crates/toml_datetime), and
+//! [`toml-test`](https://github.com/toml-lang/toml-test).
+//!
 //! ## INI files
 //!
 //! `tomlini` parses INI-style configs out of the box — `;` comments, bare
@@ -77,6 +84,9 @@
 //! [`SpanKind`]: crate::SpanKind
 //! [`ParseError`]: crate::ParseError
 //! [`ValidationMode`]: crate::ValidationMode
+//! [`toml_edit`]: https://crates.io/crates/toml_edit
+//! [`toml_datetime`]: https://crates.io/crates/toml_datetime
+//! [`toml-test`]: https://github.com/toml-lang/toml-test
 
 #![cfg_attr(all(not(feature = "std"), not(test)), no_std)]
 
