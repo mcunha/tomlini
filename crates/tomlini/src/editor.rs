@@ -168,6 +168,7 @@ fn is_value_kind(k: SpanKind) -> bool {
 
 /// Find the matching close bracket for an open bracket span.
 /// Returns the span index of the matching `ArrayClose` or `InlineTableClose`.
+#[allow(clippy::needless_range_loop)]
 fn find_matching_close(spans: &[Span], open_idx: usize) -> Option<usize> {
     let (open_k, close_k) = match spans[open_idx].kind {
         SpanKind::ArrayOpen => (SpanKind::ArrayOpen, SpanKind::ArrayClose),
@@ -190,6 +191,7 @@ fn find_matching_close(spans: &[Span], open_idx: usize) -> Option<usize> {
 
 /// Walk top-level elements inside an array (open_idx..close_idx).
 /// Returns a list of `(value_span_idx, trailing_comma_span_idx_or_none)`.
+#[allow(clippy::needless_range_loop)]
 fn walk_array_elements(
     spans: &[Span],
     open_idx: usize,
@@ -221,13 +223,12 @@ fn walk_array_elements(
                 depth -= 1;
                 i += 1;
             }
-            k if is_value_kind(k)
-                && depth == 1 => {
-                    let val_idx = i;
-                    i += 1;
-                    let comma = skip_to_comma(spans, &mut i, close_idx);
-                    elems.push((val_idx, comma));
-                }
+            k if is_value_kind(k) && depth == 1 => {
+                let val_idx = i;
+                i += 1;
+                let comma = skip_to_comma(spans, &mut i, close_idx);
+                elems.push((val_idx, comma));
+            }
             _ => {
                 i += 1;
             }
@@ -406,7 +407,6 @@ fn walk_inline_pairs(
 // ============================================================
 // Editor
 // ============================================================
-
 
 impl Editor {
     /// Create a new batch editor with an empty operation queue.
@@ -1834,6 +1834,7 @@ impl Editor {
                         .map(BringAlong)
                         .unwrap_or(BringAlong::NOTHING);
                     if bring.contains(BringAlong::COMMENTS_ABOVE) && all_starts.len() > 1 {
+                        #[allow(clippy::needless_range_loop)]
                         for idx in 1..all_starts.len() {
                             let mut pos = all_starts[idx].1 as usize;
                             // Walk back to the previous \n before this entry
@@ -1926,15 +1927,9 @@ impl Editor {
         }
         // Rebuild index — byte-offset-only adjustment is insufficient for
         // Re-parse: span delta pass can't track relocation from move/promote ops.
-        // Re-parsing gives us accurate spans aligned with the new source.
-        match crate::parse(&doc.source) {
-            Ok(reparsed) => {
-                doc.spans = reparsed.spans;
-                doc.index = None; // let lazy builder rebuild
-            }
-            // If the edited source is somehow unparseable, keep old spans.
-            // This should never happen for valid mutations of valid input.
-            Err(_) => {}
+        if let Ok(reparsed) = crate::parse(&doc.source) {
+            doc.spans = reparsed.spans;
+            doc.index = None;
         }
         self.ops.clear();
         Ok(())
@@ -2559,6 +2554,7 @@ fn find_section_header(spans: &[Span], source: &str, path: &[String]) -> Option<
 
 /// Find the byte position where the next section header starts after
 /// the given span index.
+#[allow(clippy::needless_range_loop)]
 fn find_next_section_start(spans: &[Span], after_idx: usize) -> Option<u32> {
     for i in (after_idx + 1)..spans.len() {
         if spans[i].kind == SpanKind::ArrayOpen {

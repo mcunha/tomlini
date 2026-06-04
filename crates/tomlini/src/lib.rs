@@ -842,7 +842,6 @@ impl Default for FlatDoc {
     }
 }
 
-
 #[cfg(feature = "alloc")]
 /// Decode a TOML string value: resolve escape sequences.
 fn decode_toml_string(raw: &str, kind: SpanKind) -> String {
