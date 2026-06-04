@@ -7,9 +7,9 @@
 //! ## Quick start
 //!
 //! ```ignore
-//! use toml_fast::Editor;
+//! use tomlini::Editor;
 //!
-//! let mut doc = toml_fast::parse("[server]\nport = 8080\n")?;
+//! let mut doc = tomlini::parse("[server]\nport = 8080\n")?;
 //!
 //! // Read values
 //! assert!(doc.has("server.port"));
@@ -50,7 +50,7 @@
 //! ## Footgun-free editing
 //!
 //! `toml_edit` has [28 documented footguns](https://github.com/toml-rs/toml/issues)
-//! where formatting is silently destroyed. `toml_fast` has zero — every API
+//! where formatting is silently destroyed. `tomlini` has zero — every API
 //! path preserves comments, whitespace, and key order unless explicitly
 //! overridden with formatting modifiers.
 //!

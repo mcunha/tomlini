@@ -1,6 +1,6 @@
 //! Tests for SAX edit operations on FlatDoc.
 
-use toml_fast::{parse, EditError};
+use tomlini::{parse, EditError};
 
 #[test]
 fn set_simple_value() {

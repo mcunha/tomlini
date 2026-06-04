@@ -1,6 +1,6 @@
 //! Tests for the batch editor.
 
-use toml_fast::{parse, EditError};
+use tomlini::{parse, EditError};
 
 // ============================================================
 // Read accessors
@@ -43,7 +43,7 @@ fn test_get_quoted_value() {
 #[test]
 fn editor_set_value() {
     let mut doc = parse("port = 8080\n").unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.set("port", "9090").commit(&mut doc).unwrap();
     assert_eq!(doc.to_string(), "port = 9090\n");
 }
@@ -51,7 +51,7 @@ fn editor_set_value() {
 #[test]
 fn editor_set_value_in_table() {
     let mut doc = parse("[server]\nport = 8080\n").unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.set("server.port", "9090").commit(&mut doc).unwrap();
     assert!(doc.to_string().contains("port = 9090"));
 }
@@ -59,7 +59,7 @@ fn editor_set_value_in_table() {
 #[test]
 fn test_set_creates_valid_output() {
     let mut doc = parse("key = \"old\"\n").unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.set("key", "\"new\"").commit(&mut doc).unwrap();
     // The output should parse successfully.
     let reparsed = parse(&doc.to_string());
@@ -69,7 +69,7 @@ fn test_set_creates_valid_output() {
 #[test]
 fn test_set_nonexistent_key() {
     let mut doc = parse("a = 1\n").unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.set("missing", "2");
     let result = editor.commit(&mut doc);
     assert!(matches!(result, Err(EditError::NotFound)));
@@ -82,15 +82,15 @@ fn test_set_nonexistent_key() {
 #[test]
 fn editor_insert_key() {
     let mut doc = parse("name = \"hello\"\n").unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.insert("", "version", "1.0").commit(&mut doc).unwrap();
     assert!(doc.to_string().contains("version = 1.0"));
 }
 
 #[test]
 fn test_insert_into_empty_doc() {
-    let mut doc = toml_fast::FlatDoc::new();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut doc = tomlini::FlatDoc::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.insert("", "key", "\"val\"").commit(&mut doc).unwrap();
     assert!(doc.to_string().contains("key = \"val\""));
 }
@@ -100,7 +100,7 @@ fn test_insert_multiple() {
     // Batch-insert several keys into a document that already has content.
     // The insert ops all resolve to the end of the root table in one pass.
     let mut doc = parse("z = 999\n").unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.insert("", "a", "1");
     editor.insert("", "b", "2");
     editor.insert("", "c", "3");
@@ -115,7 +115,7 @@ fn test_insert_multiple() {
 #[test]
 fn editor_insert_with_comment() {
     let mut doc = parse("name = \"hello\"\n").unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.insert("", "version", "1.0")
         .with_above_comment("The app version");
     editor.commit(&mut doc).unwrap();
@@ -125,7 +125,7 @@ fn editor_insert_with_comment() {
 #[test]
 fn test_insert_with_block_comment() {
     let mut doc = parse("name = \"hello\"\n").unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.insert("", "version", "1.0")
         .with_block_comment(&["Copyright 2024", "All rights reserved"]);
     editor.commit(&mut doc).unwrap();
@@ -137,7 +137,7 @@ fn test_insert_with_block_comment() {
 #[test]
 fn test_insert_nonexistent_table() {
     let mut doc = parse("[real]\na = 1\n").unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.insert("nonexistent", "key", "val");
     let result = editor.commit(&mut doc);
     assert!(matches!(result, Err(EditError::NotFound)));
@@ -150,7 +150,7 @@ fn test_insert_nonexistent_table() {
 #[test]
 fn editor_remove_key() {
     let mut doc = parse("name = \"hello\"\nversion = \"1.0\"\n").unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.remove("version").commit(&mut doc).unwrap();
     assert!(!doc.to_string().contains("version"));
 }
@@ -158,7 +158,7 @@ fn editor_remove_key() {
 #[test]
 fn test_remove_last_key() {
     let mut doc = parse("only = \"me\"\n").unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.remove("only").commit(&mut doc).unwrap();
     // The entire line is removed. The document may be empty.
     assert!(!doc.to_string().contains("only"));
@@ -167,7 +167,7 @@ fn test_remove_last_key() {
 #[test]
 fn test_remove_nonexistent_key() {
     let mut doc = parse("a = 1\n").unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.remove("missing");
     let result = editor.commit(&mut doc);
     assert!(matches!(result, Err(EditError::NotFound)));
@@ -176,7 +176,7 @@ fn test_remove_nonexistent_key() {
 #[test]
 fn test_remove_from_nonexistent_table() {
     let mut doc = parse("[real]\na = 1\n").unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.remove("fake.key");
     let result = editor.commit(&mut doc);
     assert!(matches!(result, Err(EditError::NotFound)));
@@ -189,7 +189,7 @@ fn test_remove_from_nonexistent_table() {
 #[test]
 fn editor_chained_ops() {
     let mut doc = parse("[server]\nhost = \"localhost\"\nport = 8080\n").unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor
         .set("server.port", "9090")
         .insert("server", "timeout", "30")
@@ -208,7 +208,7 @@ fn test_chain_set_and_remove_same_key() {
     // Both set and remove targeting the same key in one commit:
     // remove wins because it removes the entire line.
     let mut doc = parse("x = 1\n").unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.set("x", "2").remove("x");
     editor.commit(&mut doc).unwrap();
     let out = doc.to_string();
@@ -217,8 +217,8 @@ fn test_chain_set_and_remove_same_key() {
 
 #[test]
 fn test_chain_ten_ops() {
-    let mut doc = toml_fast::FlatDoc::new();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut doc = tomlini::FlatDoc::new();
+    let mut editor = tomlini::editor::Editor::new();
     for i in 0..10 {
         let key = format!("k{i}");
         let val = format!("{i}");
@@ -239,14 +239,14 @@ fn test_chain_ten_ops() {
 fn test_empty_commit() {
     let mut doc = parse("key = 1\n").unwrap();
     let original = doc.to_string();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.commit(&mut doc).unwrap();
     assert_eq!(doc.to_string(), original);
 }
 
 #[test]
 fn test_document_new_is_empty() {
-    let doc = toml_fast::FlatDoc::new();
+    let doc = tomlini::FlatDoc::new();
     assert!(doc.to_string().is_empty());
 }
 
@@ -257,7 +257,7 @@ fn test_document_new_is_empty() {
 #[test]
 fn editor_set_preserves_comment() {
     let mut doc = parse("port = 8080 # default\n").unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.set("port", "9090").commit(&mut doc).unwrap();
     assert!(doc.to_string().contains("# default"));
 }
@@ -265,7 +265,7 @@ fn editor_set_preserves_comment() {
 #[test]
 fn test_set_preserves_comment_before_key() {
     let mut doc = parse("# the port number\nport = 8080\n").unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.set("port", "9090").commit(&mut doc).unwrap();
     let out = doc.to_string();
     assert!(out.contains("# the port number"), "comment above key must survive: {out}");
@@ -275,7 +275,7 @@ fn test_set_preserves_comment_before_key() {
 #[test]
 fn test_insert_copies_neighbor_indent() {
     let mut doc = parse("[server]\n  host = \"localhost\"\n").unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.insert("server", "port", "8080").commit(&mut doc).unwrap();
     let out = doc.to_string();
     // The inserted line should copy the 2-space indent.
@@ -285,7 +285,7 @@ fn test_insert_copies_neighbor_indent() {
 #[test]
 fn test_remove_preserves_adjacent_formatting() {
     let mut doc = parse("key1 = \"a\"\nkey2 = \"b\"\nkey3 = \"c\"\n").unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.remove("key2").commit(&mut doc).unwrap();
     let out = doc.to_string();
     assert!(out.contains("key1 = \"a\""));
@@ -321,7 +321,7 @@ fn get_decoded_integer_returns_raw() {
 #[test]
 fn test_array_insert() {
     let mut doc = parse("arr = [1, 2, 3]\n").unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.array_insert("arr", 1, "99").commit(&mut doc).unwrap();
     let out = doc.to_string();
     assert!(out.contains("99"), "inserted value not found in: {out}");
@@ -333,7 +333,7 @@ fn test_array_insert() {
 #[test]
 fn test_array_insert_at_end() {
     let mut doc = parse("arr = [1, 2, 3]\n").unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.array_insert("arr", 3, "4").commit(&mut doc).unwrap();
     let out = doc.to_string();
     assert!(out.contains("4"));
@@ -343,7 +343,7 @@ fn test_array_insert_at_end() {
 #[test]
 fn test_array_insert_into_empty() {
     let mut doc = parse("arr = []\n").unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.array_insert("arr", 0, "1").commit(&mut doc).unwrap();
     let out = doc.to_string();
     assert!(out.contains("1"));
@@ -352,7 +352,7 @@ fn test_array_insert_into_empty() {
 #[test]
 fn test_array_remove() {
     let mut doc = parse("arr = [1, 2, 3]\n").unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.array_remove("arr", 1).commit(&mut doc).unwrap();
     let out = doc.to_string();
     assert!(out.contains("1"));
@@ -363,7 +363,7 @@ fn test_array_remove() {
 #[test]
 fn test_array_remove_first() {
     let mut doc = parse("arr = [1, 2, 3]\n").unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.array_remove("arr", 0).commit(&mut doc).unwrap();
     let out = doc.to_string();
     assert!(!out.contains('1'));
@@ -374,7 +374,7 @@ fn test_array_remove_first() {
 #[test]
 fn test_array_remove_last() {
     let mut doc = parse("arr = [1, 2, 3]\n").unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.array_remove("arr", 2).commit(&mut doc).unwrap();
     let out = doc.to_string();
     assert!(out.contains("1"));
@@ -389,7 +389,7 @@ fn test_array_remove_last() {
 #[test]
 fn test_replace_section() {
     let mut doc = parse("[server]\nhost = \"old\"\nport = 80\n").unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.replace_section("server", &[("host", "\"new\""), ("timeout", "30")])
         .commit(&mut doc).unwrap();
     let out = doc.to_string();
@@ -403,7 +403,7 @@ fn test_replace_section() {
 #[test]
 fn test_replace_section_new_section() {
     let mut doc = parse("root_key = 1\n").unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.replace_section("new_sec", &[("key", "\"val\"")])
         .commit(&mut doc).unwrap();
     let out = doc.to_string();
@@ -414,7 +414,7 @@ fn test_replace_section_new_section() {
 #[test]
 fn test_clear_section() {
     let mut doc = parse("[server]\nhost = \"x\"\nport = 80\n").unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.clear_section("server").commit(&mut doc).unwrap();
     let out = doc.to_string();
     assert!(out.contains("[server]"), "header must survive: {out}");
@@ -425,7 +425,7 @@ fn test_clear_section() {
 #[test]
 fn test_rename_section() {
     let mut doc = parse("[old]\nkey = 1\n").unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.rename_section("old", "new").commit(&mut doc).unwrap();
     let out = doc.to_string();
     assert!(out.contains("[new]"), "new name missing: {out}");
@@ -436,7 +436,7 @@ fn test_rename_section() {
 #[test]
 fn test_rename_section_conflict() {
     let mut doc = parse("[a]\nk = 1\n[b]\nk = 2\n").unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.rename_section("a", "b");
     let result = editor.commit(&mut doc);
     assert!(matches!(result, Err(EditError::SectionExists)));
@@ -450,7 +450,7 @@ fn test_rename_section_conflict() {
 fn test_aot_set() {
     let input = "[[products]]\nname = \"apple\"\nprice = 5\n\n[[products]]\nname = \"banana\"\nprice = 3\n";
     let mut doc = parse(input).unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.aot_set("products", 0, "price", "10").commit(&mut doc).unwrap();
     let out = doc.to_string();
     // First product's price should be 10, second should remain 3
@@ -464,7 +464,7 @@ fn test_aot_set() {
 fn test_aot_set_second_entry() {
     let input = "[[products]]\nname = \"apple\"\nprice = 5\n\n[[products]]\nname = \"banana\"\nprice = 3\n";
     let mut doc = parse(input).unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.aot_set("products", 1, "name", "\"cherry\"").commit(&mut doc).unwrap();
     let out = doc.to_string();
     assert!(out.contains("name = \"apple\""), "first name should survive: {out}");
@@ -476,7 +476,7 @@ fn test_aot_set_second_entry() {
 fn test_aot_set_nonexistent_key() {
     let input = "[[products]]\nname = \"apple\"\n";
     let mut doc = parse(input).unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.aot_set("products", 0, "missing", "99");
     let result = editor.commit(&mut doc);
     assert!(matches!(result, Err(EditError::NotFound)));
@@ -486,7 +486,7 @@ fn test_aot_set_nonexistent_key() {
 fn test_aot_set_bad_index() {
     let input = "[[products]]\nname = \"apple\"\n";
     let mut doc = parse(input).unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.aot_set("products", 5, "name", "\"x\"");
     let result = editor.commit(&mut doc);
     assert!(matches!(result, Err(EditError::InvalidPath)));
@@ -500,7 +500,7 @@ fn test_aot_set_bad_index() {
 fn test_inline_insert() {
     let input = "key = {a = 1, b = 2}\n";
     let mut doc = parse(input).unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.inline_insert("key", "c", "3").commit(&mut doc).unwrap();
     let out = doc.to_string();
     assert!(out.contains("key = {a = 1, b = 2, c = 3}"), "unexpected output: {out}");
@@ -510,7 +510,7 @@ fn test_inline_insert() {
 fn test_inline_insert_empty() {
     let input = "key = {}\n";
     let mut doc = parse(input).unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.inline_insert("key", "a", "1").commit(&mut doc).unwrap();
     let out = doc.to_string();
     assert!(out.contains("key = {a = 1}"), "unexpected output: {out}");
@@ -520,7 +520,7 @@ fn test_inline_insert_empty() {
 fn test_inline_remove() {
     let input = "key = {a = 1, b = 2, c = 3}\n";
     let mut doc = parse(input).unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.inline_remove("key", "b").commit(&mut doc).unwrap();
     let out = doc.to_string();
     assert!(out.contains("key = {a = 1,c = 3}"), "unexpected output: {out}");
@@ -530,7 +530,7 @@ fn test_inline_remove() {
 fn test_inline_remove_last() {
     let input = "key = {a = 1}\n";
     let mut doc = parse(input).unwrap();
-    let mut editor = toml_fast::editor::Editor::new();
+    let mut editor = tomlini::editor::Editor::new();
     editor.inline_remove("key", "a").commit(&mut doc).unwrap();
     let out = doc.to_string();
     assert!(out.contains("{}"), "unexpected output: {out}");

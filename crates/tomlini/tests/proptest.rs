@@ -1,7 +1,7 @@
-//! Property-based tests for `toml_fast`.
+//! Property-based tests for `tomlini`.
 
 use proptest::prelude::*;
-use toml_fast::{SpanKind, parse};
+use tomlini::{SpanKind, parse};
 
 // ============================================================
 // TOML document generator — rejection-free

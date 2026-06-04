@@ -1,10 +1,10 @@
-//! Error-path property tests for `toml_fast`.
+//! Error-path property tests for `tomlini`.
 //!
 //! Generates deliberately invalid TOML and asserts the parser either
 //! rejects it or that accepted spans still satisfy basic invariants.
 
 use proptest::prelude::*;
-use toml_fast::parse;
+use tomlini::parse;
 
 fn unterminated_basic() -> impl Strategy<Value = String> {
     "[a-zA-Z0-9]{1,20}".prop_map(|s| format!("\"{s}"))

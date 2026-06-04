@@ -1,4 +1,4 @@
-# toml_fast
+# tomlini
 
 DOM-free TOML parser and editor. Zero dependencies, three-tier (`core`/`alloc`/`std`).
 
@@ -8,12 +8,12 @@ DOM-free TOML parser and editor. Zero dependencies, three-tier (`core`/`alloc`/`
 - **2–3× faster edits** with batch commit (single index build, descending sort, one-pass span fixup)
 - **No footguns** — every API path preserves formatting unless explicitly overridden
 - **Three tiers**: `core` (zero alloc), `alloc` (full editing), `std` (error impls)
-- **Serde bridge** via `toml_fast_serde` for struct deserialization
+- **Serde bridge** via `tomlini_serde` for struct deserialization
 
 ## Quick start
 
 ```rust
-let mut doc = toml_fast::parse("[server]\nport = 8080\n")?;
+let mut doc = tomlini::parse("[server]\nport = 8080\n")?;
 
 // Read
 assert!(doc.has("server.port"));

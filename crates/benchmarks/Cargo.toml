@@ -12,8 +12,8 @@ release = false
 serde = { workspace = true, features = ["derive"] }
 
 [dev-dependencies]
-toml_fast = { path = "../toml_fast" }
-toml_fast_serde = { path = "../toml_fast_serde" }
+tomlini = { path = "../tomlini" }
+tomlini_serde = { path = "../tomlini_serde" }
 divan = "0.1"
 
 [[bench]]

@@ -1,6 +1,6 @@
-//! Coverage-saturating tests for `toml_fast`.
+//! Coverage-saturating tests for `tomlini`.
 
-use toml_fast::{SpanKind, parse};
+use tomlini::{SpanKind, parse};
 
 fn assert_kinds(input: &str, expected: &[SpanKind]) {
     let doc = parse(input).unwrap();

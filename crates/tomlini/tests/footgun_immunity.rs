@@ -1,7 +1,7 @@
 //! Verify FlatDoc is immune to the format-preservation footguns
 //! we documented for toml_edit.
 
-use toml_fast::parse;
+use tomlini::parse;
 
 // ============================================================
 // Footgun 1: IndexMut auto-creates InlineTable

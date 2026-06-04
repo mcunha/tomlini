@@ -1,4 +1,4 @@
-# tomlini — next-generation TOML parser and editor
+# tomlini — next-generation SAX TOML parser and editor
 
 A zero-dependency, three-tier (`core`/`alloc`/`std`) TOML implementation
 that parses into a flat span index instead of a DOM tree. Edits are
@@ -13,7 +13,7 @@ byte-range splices on the source string — no decor model, no footguns.
 - **2–3× faster edits** with batch commit (single index build, descending sort, one-pass span fixup)
 - **No footguns** — every API path preserves formatting unless explicitly overridden
 - **Three tiers**: `core` (zero alloc), `alloc` (full editing), `std` (error impls)
-- **Serde bridge** via `toml_fast_serde` for struct deserialization
+- **Serde bridge** via `tomlini_serde` for struct deserialization
 - **Three-mode validation**: Lenient (accept everything), Relaxed (INI support), Strict (spec-compliant)
 - **INI `;` comment support** out of the box
 - **490 toml-test compliance** tests (272 decoder + 218 encoder)
@@ -21,7 +21,7 @@ byte-range splices on the source string — no decor model, no footguns.
 ## Quick start
 
 ```rust
-let mut doc = toml_fast::parse("[server]\nport = 8080\n")?;
+let mut doc = tomlini::parse("[server]\nport = 8080\n")?;
 
 // Read
 if doc.has("server.port") {

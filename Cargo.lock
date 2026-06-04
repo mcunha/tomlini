@@ -406,7 +406,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "toml_fast"
+name = "tomlini"
 version = "0.0.0"
 dependencies = [
  "proptest",

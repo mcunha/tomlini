@@ -1,4 +1,4 @@
-//! Serde benchmarks for `toml_fast_serde`.
+//! Serde benchmarks for `tomlini_serde`.
 
 #![allow(elided_lifetimes_in_paths)]
 
@@ -14,7 +14,7 @@ const T: &str = "[package]\nname = \"bar\"\nversion = \"0.1.0\"\nedition = \"201
 
 #[divan::bench]
 fn fast_serde() -> Config {
-    toml_fast_serde::from_str(T).unwrap().1
+    tomlini_serde::from_str(T).unwrap().1
 }
 
 fn main() { divan::main(); }

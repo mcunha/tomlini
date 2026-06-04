@@ -1,6 +1,6 @@
-# toml_fast_serde
+# tomlini_serde
 
-Serde integration for `toml_fast`. Deserializes TOML directly from the flat span index — no DOM construction.
+Serde integration for `tomlini`. Deserializes TOML directly from the flat span index — no DOM construction.
 
 ## Features
 
@@ -27,14 +27,14 @@ struct Server {
     host: String,
 }
 
-let doc = toml_fast::parse("[server]\nport = 8080\nhost = \"localhost\"\n")?;
-let config: Config = toml_fast_serde::from_doc(&doc)?;
+let doc = tomlini::parse("[server]\nport = 8080\nhost = \"localhost\"\n")?;
+let config: Config = tomlini_serde::from_doc(&doc)?;
 ```
 
 ## Serialize back to editable document
 
 ```rust
-let doc = toml_fast_serde::to_doc(&config)?;
+let doc = tomlini_serde::to_doc(&config)?;
 doc.edit().set("server.port", "9090").commit()?;
 ```
 

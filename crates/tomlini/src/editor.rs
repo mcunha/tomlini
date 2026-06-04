@@ -1,4 +1,4 @@
-//! Batch editor for `toml_fast`.
+//! Batch editor for `tomlini`.
 //!
 //! The [`Editor`] collects a queue of mutation operations and applies them
 //! all at once when [`commit`](Editor::commit) is called.  This avoids

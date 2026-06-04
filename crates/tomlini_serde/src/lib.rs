@@ -1,6 +1,6 @@
 //! # toml\_fast\_serde — Serde bridge for toml\_fast
 //!
-//! Deserialize Rust types directly from `toml_fast`'s flat span index.
+//! Deserialize Rust types directly from `tomlini`'s flat span index.
 //! No DOM construction, no `IndexMap` lookups, no `Formatted` allocations.
 //!
 //! ## Quick start
@@ -11,15 +11,15 @@
 //! #[derive(Deserialize)]
 //! struct Config { port: u16, host: String }
 //!
-//! let doc = toml_fast::parse("port = 8080\nhost = \"localhost\"\n")?;
-//! let config: Config = toml_fast_serde::from_doc(&doc)?;
+//! let doc = tomlini::parse("port = 8080\nhost = \"localhost\"\n")?;
+//! let config: Config = tomlini_serde::from_doc(&doc)?;
 //! ```
 //!
 //! ## Serialize
 //!
 //! ```ignore
-//! let doc = toml_fast_serde::to_doc(&config)?;  // editable FlatDoc
-//! let s   = toml_fast_serde::to_string(&config)?; // String
+//! let doc = tomlini_serde::to_doc(&config)?;  // editable FlatDoc
+//! let s   = tomlini_serde::to_string(&config)?; // String
 //! ```
 //!
 //! ## Supported features
@@ -54,15 +54,15 @@ use core::fmt;
 use alloc::string::{String, ToString};
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
-use toml_fast::{FlatDoc, Span, SpanKind};
+use tomlini::{FlatDoc, Span, SpanKind};
 
-#[derive(Debug)] pub enum Error { Message(String), Parse(toml_fast::ParseError) }
+#[derive(Debug)] pub enum Error { Message(String), Parse(tomlini::ParseError) }
 impl fmt::Display for Error { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { match self { Error::Message(m) => f.write_str(m), Error::Parse(e) => write!(f, "parse error: {e:?}") } } }
 #[cfg(feature = "std")]
 impl std::error::Error for Error {}
 impl serde::ser::Error for Error { fn custom<T: fmt::Display>(msg: T) -> Self { Error::Message(msg.to_string()) } }
 impl de::Error for Error { fn custom<T: fmt::Display>(msg: T) -> Self { Error::Message(msg.to_string()) } }
-impl From<toml_fast::ParseError> for Error { fn from(e: toml_fast::ParseError) -> Self { Error::Parse(e) } }
+impl From<tomlini::ParseError> for Error { fn from(e: tomlini::ParseError) -> Self { Error::Parse(e) } }
 // ============================================================
 // ============================================================
 // Serialize via toml_writer
@@ -78,7 +78,7 @@ pub fn to_string<T: serde::Serialize>(value: &T) -> Result<String, Error> {
 /// Serialize a Rust value to an editable `FlatDoc`.
 pub fn to_doc<T: serde::Serialize>(value: &T) -> Result<FlatDoc, Error> {
     let s = to_string(value)?;
-    Ok(toml_fast::parse(&s)?)
+    Ok(tomlini::parse(&s)?)
 }
 
 
@@ -196,7 +196,7 @@ impl<'a> serde::ser::SerializeStruct for StructSerializer<'a> { type Ok = (); ty
 // ============================================================
 
 pub fn from_str<T: for<'de> Deserialize<'de>>(input: &str) -> Result<(FlatDoc, T), Error> {
-    let doc = toml_fast::parse(input)?; let val = from_doc(&doc)?; Ok((doc, val))
+    let doc = tomlini::parse(input)?; let val = from_doc(&doc)?; Ok((doc, val))
 }
 pub fn from_doc<'de, T: Deserialize<'de>>(doc: &'de FlatDoc) -> Result<T, Error> {
     T::deserialize(&mut Deser::new(doc))
