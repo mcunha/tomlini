@@ -87,10 +87,11 @@ jobs:
 
   zizmor:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
+    timeout-minutes: 10
       - uses: actions/checkout@v4
-      - name: Install zizmor
-        run: cargo install zizmor
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install latest zizmor
+        run: cargo install zizmor --locked
       - name: Audit workflows
         run: zizmor --persona pedantic .github/workflows/
