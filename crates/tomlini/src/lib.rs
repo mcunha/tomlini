@@ -40,6 +40,8 @@
 //! - [`Editor`] — batch mutation accumulator, commit applies all ops at once
 //! - [`Span`], [`SpanKind`] — classified byte ranges in the source
 //! - [`ParseError`] — parse error with byte position
+//! - [`ValidationMode`] — lenient/relaxed/strict validation levels
+//! - [`SpanSink`] — core-only callback trait for span emission
 //!
 //! ## Performance
 //!
@@ -78,16 +80,53 @@
 //! doc.validate(ValidationMode::Strict);    // full TOML 1.1.0 spec
 //! ```
 //!
+//! ## Reordering
+//!
+//! The `reorder_root` primitive reorders root-level entries while preserving
+//! comments, whitespace, and key formatting. Useful for formatters like
+//! `pont fmt` that enforce "scalars before tables":
+//!
+//! ```ignore
+//! let keys = doc.keys();
+//! // Compute desired order
+//! doc.edit()
+//!     .reorder_root(&keys)
+//!     .rename_section("old-name", "new-name")  // optional
+//!     .commit()?;
+//! ```
+//!
+//! ## Container editing
+//!
+//! Arrays, inline tables, and array-of-tables are first-class edit targets:
+//!
+//! ```ignore
+//! doc.edit()
+//!     .array_push("allowed-hosts", "\"10.0.0.3\"")
+//!     .inline_set("colors", "red", "\"#cc0000\"")
+//!     .aot_push("backend", &[("host", "\"10.0.0.3\""), ("port", "9001")])
+//!     .commit()?;
+//! ```
+//!
+//! ## Core-only usage
+//!
+//! Without the `alloc` feature, the parser emits spans through a callback:
+//!
+//! ```ignore
+//! tomlini::parse_into(input, &mut |kind, start, end| {
+//!     // Called for every classified span
+//! });
+//! ```
+//!
 //! [`FlatDoc`]: crate::FlatDoc
-//! [`Editor`]: crate::Editor
+//! [`Editor`]: crate::editor::Editor
 //! [`Span`]: crate::Span
 //! [`SpanKind`]: crate::SpanKind
+//! [`SpanSink`]: crate::SpanSink
 //! [`ParseError`]: crate::ParseError
 //! [`ValidationMode`]: crate::ValidationMode
 //! [`toml_edit`]: https://crates.io/crates/toml_edit
 //! [`toml_datetime`]: https://crates.io/crates/toml_datetime
 //! [`toml-test`]: https://github.com/toml-lang/toml-test
-
 #![cfg_attr(all(not(feature = "std"), not(test)), no_std)]
 
 #[cfg(feature = "alloc")]
@@ -819,7 +858,7 @@ impl FlatDoc {
     /// # Example
     ///
     /// ```ignore
-    /// if doc.has("package.version") { … }
+    /// if doc.has("package.version") { /* ... */ }
     /// ```
     pub fn has(&mut self, path: &str) -> bool {
         self.build_index_if_needed();
