@@ -9,11 +9,13 @@ publish = false
 release = false
 
 [dependencies]
-serde = { workspace = true, features = ["derive"] }
+serde = { workspace = true, features = ["derive", "alloc"] }
 
 [dev-dependencies]
 tomlini = { path = "../tomlini" }
 tomlini_serde = { path = "../tomlini_serde" }
+toml_edit = { workspace = true }
+toml = { workspace = true }
 divan = "0.1"
 
 [[bench]]
@@ -30,6 +32,10 @@ harness = false
 
 [[bench]]
 name = "8-realworld"
+harness = false
+
+[[bench]]
+name = "9-comparison"
 harness = false
 
 [lints]

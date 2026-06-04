@@ -97,3 +97,21 @@ jobs:
         run: cargo install zizmor --locked
       - name: Audit workflows
         run: zizmor --persona pedantic .github/workflows/
+
+  # ── comparison benchmarks ───────────────────────────────────
+
+  bench-compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: tomlini vs toml_edit comparison benchmarks
+        run: cargo bench -p toml_benchmarks --bench 9-comparison
+      - name: Upload benchmark results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-results
+          path: target/criterion/

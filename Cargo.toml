@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/tomlini", "crates/tomlini_serde"]
+members = ["crates/tomlini", "crates/tomlini_serde", "crates/benchmarks"]
 resolver = "3"
 
 [workspace.package]
@@ -13,5 +13,8 @@ documentation = "https://docs.rs/tomlini"
 [workspace.dependencies]
 serde = { version = "1", default-features = false, features = ["derive"] }
 toml_datetime = "1"
+toml_edit = "0.22"
+toml = "0.8"
+
 [workspace.lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg()'] }
