@@ -39,3 +39,27 @@ rules:
       - ci.yml:45
       - ci.yml:55
       - ci.yml:67
+      - nightly.yml:26
+      - nightly.yml:40
+      - nightly.yml:55
+      - nightly.yml:68
+      - release.yml:66
+      - release.yml:111
+  # `cargo publish` via API token is standard crates.io workflow.
+  # OIDC trusted publishing requires additional setup not yet standardized.
+  use-trusted-publishing:
+    ignore:
+      - release.yml:103
+      - release.yml:108
+
+  # Low risk in public repos.  Swatinem/rust-cache is standard Rust CI.
+  cache-poisoning:
+    ignore:
+      - release.yml:67
+
+  # Permissions have explanatory comments on adjacent lines.
+  undocumented-permissions:
+    ignore:
+      - release.yml:38
+      - release.yml:39
+      - release.yml:59
