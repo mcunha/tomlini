@@ -289,3 +289,37 @@ proptest! {
         }
     }
 }
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(2000))]
+
+    /// Garbage values injected via set() must never cause a parse panic
+    /// when the output is re-parsed.  The editor does not validate value
+    /// syntax — broken TOML output is acceptable as long as the parser
+    /// survives it.
+    #[test]
+    fn editor_survives_garbage_values(
+        doc_src in valid_toml(),
+        garbage in "\\PC{0,40}",
+    ) {
+        let mut doc = match parse(&doc_src) {
+            Ok(d) => d,
+            Err(_) => return Ok(()),
+        };
+        let keys = doc.keys();
+        if keys.is_empty() { return Ok(()); }
+        let target = &keys[0];
+
+        let mut e = Editor::new();
+        e.set(target, &garbage);
+
+        match e.commit(&mut doc) {
+            Ok(()) => {
+                let output = doc.to_string();
+                // Re-parsing must never panic, even if validation fails.
+                let _ = parse(&output);
+            }
+            Err(_) => { /* fine */ }
+        }
+    }
+}
