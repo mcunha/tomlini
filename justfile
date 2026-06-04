@@ -74,6 +74,20 @@ alloc-test:
 wasm:
     cargo build -p tomlini --target wasm32-unknown-unknown --no-default-features --features alloc
 
+
+# ---- Mutation testing (nightly CI) -----------------------------------------
+
+mutants:
+    cargo mutants -p tomlini --timeout 30 --iterate
+
+mutants-quick:
+    cargo mutants -p tomlini --timeout 15 --iterate --re "build_index|commit|clean_key"
+
+mutants-list:
+    cargo mutants -p tomlini --list
+
+mutants-shard N: SHARDS:
+    cargo mutants -p tomlini --timeout 30 --iterate --shard {{N}}/{{SHARDS}}
 # ---- Dev ------------------------------------------------------------------
 
 watch:

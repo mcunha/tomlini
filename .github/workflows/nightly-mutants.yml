@@ -1,0 +1,35 @@
+# .github/workflows/nightly-mutants.yml
+#
+# Runs cargo-mutants every night.  Uses --iterate so subsequent runs
+# only test new mutants (survivors are cached in mutants.out/).
+#
+# Configured for 4-way sharding — adjust SHARDS=4 up or down based
+# on how long each shard takes vs your runner budget.
+
+name: Nightly mutation testing
+
+on:
+  schedule:
+    - cron: '0 3 * * *'  # 3am UTC daily
+  workflow_dispatch:      # manual trigger
+
+jobs:
+  mutants:
+    strategy:
+      matrix:
+        shard: [1, 2, 3, 4]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install cargo-mutants
+        run: cargo install cargo-mutants
+      - name: Run mutants (shard ${{ matrix.shard }}/4)
+        run: cargo mutants -p tomlini --timeout 30 --iterate --shard ${{ matrix.shard }}/4
+      - name: Upload mutant artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutants-out-shard-${{ matrix.shard }}
+          path: mutants.out/
