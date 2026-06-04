@@ -1,4 +1,4 @@
-# tomlini — next-generation SAX TOML parser and editor
+# tomlini — SAX TOML/INI parser and editor
 
 A zero-dependency, three-tier (`core`/`alloc`/`std`) TOML implementation
 that parses into a flat span index instead of a DOM tree. Edits are

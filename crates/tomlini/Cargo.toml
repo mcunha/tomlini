@@ -4,7 +4,7 @@ version = "0.0.0"
 edition.workspace = true
 rust-version.workspace = true
 publish = false
-description = "Fast flat-span TOML parser for SAX-style editing"
+description = "SAX TOML/INI parser and editor. Zero-dependency, no footguns."
 
 
 [features]

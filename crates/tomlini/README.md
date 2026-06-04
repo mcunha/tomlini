@@ -1,6 +1,6 @@
 # tomlini
 
-DOM-free TOML parser and editor. Zero dependencies, three-tier (`core`/`alloc`/`std`).
+SAX TOML/INI parser and editor. Zero dependencies, three-tier (`core`/`alloc`/`std`).
 
 ## Features
 
