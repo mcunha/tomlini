@@ -194,7 +194,9 @@ pub trait SpanSink {
 
 #[derive(Debug)]
 pub struct ParseError {
-    pub pos: usize,
+    /// Byte position of the error.  Consistent with [`Span::start`] (both `u32`).
+    pub pos: u32,
+    /// Human-readable error description.
     pub msg: &'static str,
 }
 
@@ -228,7 +230,7 @@ fn lex_string<S: SpanSink>(
         }
         loop {
             if pos >= len {
-                *error = Some(ParseError { pos: start, msg: "unterminated multi-line basic string" });
+                *error = Some(ParseError { pos: start as u32, msg: "unterminated multi-line basic string" });
                 return pos;
             }
             if bytes[pos] == b'"' && pos + 1 < len && bytes[pos + 1] == b'"' && pos + 2 < len && bytes[pos + 2] == b'"' {
@@ -273,7 +275,7 @@ fn lex_string<S: SpanSink>(
             }
         }
         if pos >= len {
-            *error = Some(ParseError { pos: start, msg: "unterminated basic string" });
+            *error = Some(ParseError { pos: start as u32, msg: "unterminated basic string" });
             return pos;
         }
         pos += 1;
@@ -300,7 +302,7 @@ fn lex_literal_string<S: SpanSink>(
         loop {
             if pos >= len {
                 *error = Some(ParseError {
-                    pos: start,
+                    pos: start as u32,
                     msg: "unterminated multi-line literal string",
                 });
                 return pos;
@@ -337,7 +339,7 @@ fn lex_literal_string<S: SpanSink>(
         while pos < len && bytes[pos] != b'\'' {
             if bytes[pos] == b'\n' || bytes[pos] == b'\r' {
                 *error = Some(ParseError {
-                    pos: start,
+                    pos: start as u32,
                     msg: "newline in literal string",
                 });
                 return pos;
@@ -346,7 +348,7 @@ fn lex_literal_string<S: SpanSink>(
         }
         if pos >= len {
             *error = Some(ParseError {
-                pos: start,
+                    pos: start as u32,
                 msg: "unterminated literal string",
             });
             return pos;
@@ -857,6 +859,7 @@ impl FlatDoc {
             index: None,
         }
     }
+
     /// Check whether the given dotted path exists in the document.
     ///
     /// # Example

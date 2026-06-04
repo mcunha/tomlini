@@ -37,9 +37,9 @@ proptest! {
     ]) {
         match parse(&s) {
             Err(e) => {
-                prop_assert!(e.pos < s.len());
+                prop_assert!((e.pos as usize) < s.len());
                 let sq = s.find(&['"', '\''][..]).unwrap_or(0);
-                prop_assert!(e.pos >= sq);
+                prop_assert!((e.pos as usize) >= sq);
             }
             Ok(_) => { /* accepted — no crash is also fine */ }
         }
@@ -59,7 +59,7 @@ proptest! {
         unterminated_ml_basic(), unterminated_ml_literal(),
     ]) {
         if let Err(e) = parse(&s) {
-            prop_assert!(e.pos < s.len());
+            prop_assert!((e.pos as usize) < s.len());
         }
     }
 

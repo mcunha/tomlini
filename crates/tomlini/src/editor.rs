@@ -379,8 +379,8 @@ impl Editor {
     /// editor.insert("deps", "serde", "\"1\"")
     ///       .with_prefix("# formatting\n");
     /// ```
-    pub fn with_prefix(&mut self, p: &str) -> &mut Self {
-        if let Some(op) = self.ops.last_mut() { op.prefix = Some(p.to_string()); }
+    pub fn with_prefix(&mut self, prefix: &str) -> &mut Self {
+        if let Some(op) = self.ops.last_mut() { op.prefix = Some(prefix.to_string()); }
         self
     }
 
@@ -388,8 +388,8 @@ impl Editor {
     ///
     /// The suffix is inserted immediately after the value on the output line.
     /// Call this *after* the operation it should decorate.
-    pub fn with_suffix(&mut self, s: &str) -> &mut Self {
-        if let Some(op) = self.ops.last_mut() { op.suffix = Some(s.to_string()); }
+    pub fn with_suffix(&mut self, suffix: &str) -> &mut Self {
+        if let Some(op) = self.ops.last_mut() { op.suffix = Some(suffix.to_string()); }
         self
     }
 
@@ -1784,16 +1784,16 @@ impl<'a> EditorHandle<'a> {
     /// Attach a literal prefix to the last queued operation.
     ///
     /// See [`Editor::with_prefix`] for details.
-    pub fn with_prefix(&mut self, s: &str) -> &mut Self {
-        self.editor.with_prefix(s);
+    pub fn with_prefix(&mut self, prefix: &str) -> &mut Self {
+        self.editor.with_prefix(prefix);
         self
     }
 
     /// Attach a literal suffix to the last queued operation.
     ///
     /// See [`Editor::with_suffix`] for details.
-    pub fn with_suffix(&mut self, s: &str) -> &mut Self {
-        self.editor.with_suffix(s);
+    pub fn with_suffix(&mut self, suffix: &str) -> &mut Self {
+        self.editor.with_suffix(suffix);
         self
     }
 
