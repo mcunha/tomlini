@@ -83,6 +83,24 @@ mutants:
 mutants-quick:
     cargo mutants -p tomlini --timeout 15 --iterate --re "build_index|commit|clean_key"
 
+
+# ---- Fuzzing (nightly CI) ---------------------------------------------------
+
+fuzz:
+    # Run proptest unbounded — stops only on failure or Ctrl-C.
+    # Uses PROPTEST_CASES=0 for "run until failure" mode.
+    PROPTEST_CASES=0 cargo test --test proptest -- --nocapture
+
+fuzz-editor:
+    # Editor-specific fuzz targets only.
+    PROPTEST_CASES=0 cargo test --test proptest editor_no_panic editor_survives_garbage -- --nocapture
+
+fuzz-parser:
+    # Parser fuzz targets only.
+    PROPTEST_CASES=0 cargo test --test proptest span_integrity span_coverage idempotent -- --nocapture
+
+fuzz-errors:
+    PROPTEST_CASES=0 cargo test --test proptest_errors -- --nocapture
 mutants-list:
     cargo mutants -p tomlini --list
 

@@ -1,0 +1,84 @@
+# Nightly CI: mutation testing + unbounded fuzzing.
+#
+# Mutation testing (cargo-mutants): tests that every nontrivial code line is
+# actually tested — no mutated operator survives our test suite.
+#
+# Fuzzing (proptest): runs unbounded random inputs (PROPTEST_CASES=0) to find
+# edge-case panics, corrupt output, and round-trip failures.
+
+name: Nightly
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+jobs:
+
+  # ── mutation testing ─────────────────────────────────────────
+
+  mutants:
+    strategy:
+      matrix:
+        shard: [1, 2, 3, 4]
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install cargo-mutants
+        run: cargo install cargo-mutants
+      - name: Run mutants (shard ${{ matrix.shard }}/4)
+        run: cargo mutants -p tomlini --timeout 30 --iterate --shard ${{ matrix.shard }}/4
+      - name: Upload mutant artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutants-out-shard-${{ matrix.shard }}
+          path: mutants.out/
+
+  # ── parser fuzzing ───────────────────────────────────────────
+
+  fuzz-parser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Fuzz parser (60 min or until failure)
+        run: cargo test -p tomlini --test proptest -- span_integrity span_coverage idempotent --nocapture
+        env:
+          PROPTEST_CASES: 0
+          PROPTEST_MAX_SHRINK_TIME: 30000
+
+  # ── editor fuzzing ───────────────────────────────────────────
+
+  fuzz-editor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Fuzz editor (60 min or until failure)
+        run: cargo test -p tomlini --test proptest -- editor_no_panic editor_survives_garbage --nocapture
+        env:
+          PROPTEST_CASES: 0
+          PROPTEST_MAX_SHRINK_TIME: 30000
+
+  # ── garbage-input fuzzing ────────────────────────────────────
+
+  fuzz-garbage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Fuzz error paths (30 min or until failure)
+        run: cargo test -p tomlini --test proptest_errors -- --nocapture
+        env:
+          PROPTEST_CASES: 0
+          PROPTEST_MAX_SHRINK_TIME: 15000
