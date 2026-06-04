@@ -1,12 +1,13 @@
 # tomlini — SAX TOML/INI parser and editor
 
+[![CI](https://github.com/user/tomlini/actions/workflows/ci.yml/badge.svg)](https://github.com/user/tomlini/actions/workflows/ci.yml)
+[![docs.rs](https://img.shields.io/docsrs/tomlini)](https://docs.rs/tomlini)
+[![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](#license)
+[![MSRV](https://img.shields.io/badge/MSRV-1.85.0-orange)](https://blog.rust-lang.org/2025/02/20/Rust-1.85.0.html)
+
 A zero-dependency, three-tier (`core`/`alloc`/`std`) TOML implementation
 that parses into a flat span index instead of a DOM tree. Edits are
 byte-range splices on the source string — no decor model, no footguns.
-
-[![Rust](https://img.shields.io/badge/rust-1.85+-blue.svg)](https://rust-lang.org)
-[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE)
-
 ## Features
 
 - **18× faster parse** than `toml_edit` (3.3 µs vs 59.5 µs for a 94-line Cargo.toml)
