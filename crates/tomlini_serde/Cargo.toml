@@ -11,14 +11,11 @@ release = false
 
 [features]
 default = ["std"]
-std = ["tomlini/std", "toml_writer/std", "toml_datetime/std"]
-alloc = ["tomlini/alloc", "toml_writer/alloc", "toml_datetime/alloc"]
 
 [dependencies]
 tomlini = { path = "../tomlini", default-features = false }
 toml_datetime = { path = "../toml_datetime", features = ["serde"] }
 serde = { version = "1", default-features = false, features = ["derive"] }
-toml_writer = { path = "../toml_writer", default-features = false }
 
 [dev-dependencies]
 serde = { version = "1", features = ["derive"] }

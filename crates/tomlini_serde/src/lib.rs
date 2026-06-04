@@ -65,7 +65,6 @@ impl de::Error for Error { fn custom<T: fmt::Display>(msg: T) -> Self { Error::M
 impl From<tomlini::ParseError> for Error { fn from(e: tomlini::ParseError) -> Self { Error::Parse(e) } }
 // ============================================================
 // ============================================================
-// Serialize via toml_writer
 // ============================================================
 
 /// Serialize a Rust value to a TOML string.
