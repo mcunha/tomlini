@@ -314,6 +314,34 @@ fn get_decoded_integer_returns_raw() {
     assert_eq!(decoded, "42");
 }
 
+#[test]
+fn doc_keys_root() {
+    let mut doc = parse("name = \"app\"\nversion = \"1.0\"\n[server]\nport = 8080\n").unwrap();
+    let keys = doc.keys();
+    assert!(keys.contains(&"name".to_string()));
+    assert!(keys.contains(&"version".to_string()));
+    assert!(keys.contains(&"server".to_string()));
+}
+
+#[test]
+fn doc_is_table_true() {
+    let mut doc = parse("[server]\nport = 8080\n").unwrap();
+    assert!(doc.is_table("server"));
+}
+
+#[test]
+fn doc_is_table_false_for_scalar() {
+    let mut doc = parse("port = 8080\n").unwrap();
+    assert!(!doc.is_table("port"));
+}
+
+#[test]
+fn doc_is_table_inline() {
+    let mut doc = parse("colors = { red = \"#ff0000\" }\n").unwrap();
+    assert!(doc.is_table("colors"));
+}
+
+
 // ============================================================
 // Array insert / remove
 // ============================================================

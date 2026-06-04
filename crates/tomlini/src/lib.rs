@@ -877,6 +877,44 @@ impl FlatDoc {
         Some(decode_toml_string(raw, span.kind))
     }
 
+    /// List all top-level keys in the document.
+    ///
+    /// Returns keys of the root table: both scalar key-value pairs and
+    /// sub-table headers.
+    pub fn keys(&mut self) -> Vec<String> {
+        self.build_index_if_needed();
+        let idx = self.index.as_ref().unwrap();
+        let mut keys: Vec<String> = idx.iter()
+            .filter(|(p, _)| !p.is_empty())
+            .map(|(p, _)| p[0].clone())
+            .collect();
+        keys.sort();
+        keys.dedup();
+        keys
+    }
+
+    /// Check whether a key refers to a sub-table.
+    ///
+    /// Returns `true` if the key exists and its value is a table
+    /// (either an explicit `[table]` section or an inline table `{...}`).
+    pub fn is_table(&mut self, key: &str) -> bool {
+        self.build_index_if_needed();
+        let idx = self.index.as_ref().unwrap();
+        // A sub-table exists if any entry has this key as a path prefix
+        // (meaning there are dotted keys or section keys under it)
+        idx.iter().any(|(p, _)| p.len() >= 2 && p[0] == key)
+            || idx.iter().any(|(p, _)| p.len() == 1 && p[0] == key && self.is_value_table(key))
+    }
+
+    fn is_value_table(&self, key: &str) -> bool {
+        self.index.as_ref().unwrap().iter()
+            .filter(|(p, _)| p.len() == 1 && p[0] == key)
+            .any(|(_, e)| {
+                let span = self.spans[e.value_idx];
+                matches!(span.kind, SpanKind::InlineTableOpen)
+            })
+    }
+
     /// Begin a batch editing session.
     pub fn edit(&mut self) -> editor::EditorHandle<'_> {
         editor::EditorHandle {
