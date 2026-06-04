@@ -49,6 +49,8 @@ jobs:
         uses: MarcoIeni/release-plz-action@v0.5
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
   manual-release:
     name: Manual release (cargo-release)
     if: github.event_name == 'workflow_dispatch'
@@ -89,7 +91,6 @@ jobs:
       - name: Push tag
         run: git push --follow-tags
 
-      - name: Publish tomlini
       - name: Generate SBOM
         run: |
           cargo install cargo-sbom --locked
