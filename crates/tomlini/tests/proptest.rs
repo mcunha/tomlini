@@ -1,8 +1,7 @@
-//! Property-based tests for `tomlini`.
+//! Property-based tests for `tomlini` parser and editor.
 
 use proptest::prelude::*;
-use tomlini::{SpanKind, parse};
-
+use tomlini::{SpanKind, parse, editor::Editor};
 // ============================================================
 // TOML document generator — rejection-free
 // ============================================================
@@ -207,6 +206,86 @@ proptest! {
             prop_assert_eq!(a.kind, b.kind);
             prop_assert_eq!(a.start, b.start);
             prop_assert_eq!(a.end, b.end);
+        }
+    }
+}
+
+// ============================================================
+// Editor fuzzer
+// ============================================================
+
+/// Random scalar value for edit ops.
+fn edit_value() -> impl Strategy<Value = String> {
+    prop_oneof![
+        (any::<i64>()).prop_map(|i| i.to_string()),
+        Just("true".to_string()),
+        Just("false".to_string()),
+        Just("\"hello\"".to_string()),
+        Just("'literal'".to_string()),
+        Just("3.14".to_string()),
+    ]
+}
+
+fn edit_key() -> impl Strategy<Value = String> {
+    "[a-zA-Z][a-zA-Z0-9_]{1,8}".prop_map(|s| s)
+}
+
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(2000))]
+
+    /// The editor must never panic, regardless of operation sequence.
+    /// Every successful commit must produce re-parseable output.
+    #[test]
+    fn editor_no_panic_and_roundtrip(
+        doc_src in valid_toml(),
+        ops in prop::collection::vec(
+            (0usize..21, edit_key(), edit_key(), edit_value()),
+            0..12,
+        ),
+    ) {
+        let mut doc = match parse(&doc_src) {
+            Ok(d) => d,
+            Err(_) => return Ok(()),
+        };
+
+        for (op_idx, arg0, arg1, val) in ops {
+            let mut e = Editor::new();
+            match op_idx % 21 {
+                0 => { e.set(&arg0, &val); }
+                1 => { e.remove(&arg0); }
+                2 => { e.insert(&arg0, &arg1, &val); }
+                3 => { e.insert_section(&arg0); }
+                4 => { e.rename_section(&arg0, &arg1); }
+                5 => { e.clear_section(&arg0); }
+                6 => { e.replace_section(&arg0, &[]); }
+                7 => { e.rename_key(&arg0, &arg1); }
+                8 => { e.move_key(&arg0, &arg1); }
+                9 => { if arg0.contains('.') { e.promote_key(&arg0); } }
+                10 => { e.move_key_create(&arg0, &arg1); }
+                11 => { e.array_push(&arg0, &val); }
+                12 => { e.array_set(&arg0, 0, &val); }
+                13 => { e.array_insert(&arg0, 0, &val); }
+                14 => { e.array_remove(&arg0, 0); }
+                15 => { e.aot_push(&arg0, &[("x", "1")]); }
+                16 => { e.aot_set(&arg0, 0, &arg1, &val); }
+                17 => { e.inline_set(&arg0, &arg1, &val); }
+                18 => { e.inline_insert(&arg0, &arg1, &val); }
+                19 => { e.inline_remove(&arg0, &arg1); }
+                20 => { e.reorder_root(&[]); }
+                _ => {}
+            }
+
+            // Commit must not panic. Error is fine. Success → round-trip must parse.
+            match e.commit(&mut doc) {
+                Ok(()) => {
+                    let output = doc.to_string();
+                    let roundtrip = parse(&output);
+                    prop_assert!(roundtrip.is_ok(),
+                        "commit succeeded but output is unparseable.\n  source: {doc_src:?}\n  output: {output}");
+                }
+                Err(_) => { /* expected for random keys */ }
+            }
         }
     }
 }
