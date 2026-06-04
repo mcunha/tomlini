@@ -1,22 +1,21 @@
 [package]
 name = "tomlini"
-version = "0.0.0"
+version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+documentation.workspace = true
 publish = false
 description = "SAX TOML/INI parser and editor. Zero-dependency, no footguns."
-
 
 [features]
 default = ["std"]
 std = ["alloc"]
 alloc = []
-[package.metadata.release]
-release = false
 
 [lints]
 workspace = true
 
 [dev-dependencies]
 proptest = "1.11.0"
-

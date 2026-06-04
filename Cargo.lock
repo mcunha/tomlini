@@ -417,14 +417,14 @@ dependencies = [
 
 [[package]]
 name = "tomlini"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "proptest",
 ]
 
 [[package]]
 name = "tomlini_serde"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "serde",
  "toml_datetime",

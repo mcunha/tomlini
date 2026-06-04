@@ -1,13 +1,14 @@
 [package]
 name = "tomlini_serde"
-version = "0.0.0"
+version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-publish = false
+license.workspace = true
+repository.workspace = true
+documentation.workspace = true
 description = "Serde Deserializer powered by tomlini's flat-span parser"
+publish = false
 
-[package.metadata.release]
-release = false
 
 [dependencies]
 tomlini = { path = "../tomlini", default-features = false, features = ["alloc"] }
