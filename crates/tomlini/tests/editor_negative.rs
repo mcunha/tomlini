@@ -222,3 +222,100 @@ fn promote_root_key_panics() {
     let mut e = Editor::new(); e.move_key_create("nope.key", "x");
     assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::NotFound));
 }
+// ============================================================
+// Additional gap-filling tests — error conditions not previously covered
+// ============================================================
+
+// ── array ops on scalar values ────────────────────────────────
+
+#[test] fn array_push_on_scalar() {
+    let mut doc = parse("x = 1\n").unwrap();
+    let mut e = Editor::new(); e.array_push("x", "2");
+    // resolve_array sees scalar kind != ArrayOpen → InvalidPath
+    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::InvalidPath),
+        "array_push on scalar returns InvalidPath");
+}
+
+#[test] fn array_set_on_scalar() {
+    let mut doc = parse("x = 1\n").unwrap();
+    let mut e = Editor::new(); e.array_set("x", 0, "2");
+    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::InvalidPath),
+        "array_set on scalar returns InvalidPath");
+}
+
+#[test] fn array_insert_on_scalar() {
+    let mut doc = parse("x = 1\n").unwrap();
+    let mut e = Editor::new(); e.array_insert("x", 0, "2");
+    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::InvalidPath),
+        "array_insert on scalar returns InvalidPath");
+}
+
+#[test] fn array_remove_on_scalar() {
+    let mut doc = parse("x = 1\n").unwrap();
+    let mut e = Editor::new(); e.array_remove("x", 0);
+    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::InvalidPath),
+        "array_remove on scalar returns InvalidPath");
+}
+
+#[test] fn aot_push_nonexistent() {
+    let mut doc = parse("x = 1\n").unwrap();
+    let mut e = Editor::new(); e.aot_push("nonexistent", &[("k", "v")]);
+    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::NotFound),
+        "aot_push on nonexistent path returns NotFound");
+}
+
+// ── inline ops on non-inline tables ───────────────────────────
+
+#[test] fn inline_set_on_non_inline() {
+    let mut doc = parse("[stdtable]\nk = 1\n").unwrap();
+    let mut e = Editor::new(); e.inline_set("stdtable", "k", "2");
+    // resolve_inline_table returns NotFound when target is not { inline }
+    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::NotFound),
+        "inline_set on regular [table] returns NotFound");
+}
+
+#[test] fn inline_insert_on_non_inline() {
+    let mut doc = parse("[stdtable]\nk = 1\n").unwrap();
+    let mut e = Editor::new(); e.inline_insert("stdtable", "k2", "2");
+    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::NotFound),
+        "inline_insert on regular [table] returns NotFound");
+}
+
+#[test] fn inline_remove_on_non_inline() {
+    let mut doc = parse("[stdtable]\nk = 1\n").unwrap();
+    let mut e = Editor::new(); e.inline_remove("stdtable", "k");
+    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::NotFound),
+        "inline_remove on regular [table] returns NotFound");
+}
+
+// ── rename_key cross-table ────────────────────────────────────
+
+#[test] fn rename_key_cross_table() {
+    let mut doc = parse("[a]\nk = 1\n[b]\nk = 2\n").unwrap();
+    let mut e = Editor::new(); e.rename_key("a.k", "b.k");
+    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::TableMismatch),
+        "rename_key cross-table returns TableMismatch");
+}
+
+#[test] fn rename_key_nonexistent_source() {
+    let mut doc = parse("[a]\nk = 1\n").unwrap();
+    let mut e = Editor::new(); e.rename_key("a.nonexistent", "a.new");
+    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::NotFound),
+        "rename_key on nonexistent source returns NotFound");
+}
+
+// ── move_key nonexistent source ───────────────────────────────
+
+#[test] fn move_key_nonexistent_source() {
+    let mut doc = parse("[a]\nk = 1\n").unwrap();
+    let mut e = Editor::new(); e.move_key("a.nonexistent", "b.k");
+    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::NotFound),
+        "move_key with nonexistent source returns NotFound");
+}
+
+#[test] fn move_key_nonexistent_dest_table() {
+    let mut doc = parse("[a]\nk = 1\n").unwrap();
+    let mut e = Editor::new(); e.move_key("a.k", "nonexistent.k");
+    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::NotFound),
+        "move_key to nonexistent dest table returns NotFound (use move_key_create)");
+}
