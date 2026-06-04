@@ -13,8 +13,8 @@ documentation = "https://docs.rs/tomlini"
 [workspace.dependencies]
 serde = { version = "1", default-features = false, features = ["derive"] }
 toml_datetime = "1"
-toml_edit = "0.22"
-toml = "0.8"
+toml_edit = "0.25"
+toml = "1.1"
 
 [workspace.lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg()'] }
