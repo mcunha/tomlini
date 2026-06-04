@@ -1,0 +1,5 @@
+- [ ] Tests pass (`just test`)
+- [ ] `cargo fmt --check` passes (`just fmt-check`)
+- [ ] `cargo clippy -- -D warnings` passes (`just clippy`)
+- [ ] `cargo doc --no-deps` passes with no warnings
+- [ ] CHANGELOG.md updated if this is a notable change
