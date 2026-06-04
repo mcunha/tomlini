@@ -59,12 +59,28 @@ struct Op {
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum OpKind { Set, Insert, Remove, InsertSection, ReplaceSection, ClearSection, RenameSection, RenameKey, MoveKey, PromoteKey, MoveKeyCreate, ArrayPush, ArraySet, ArrayInsert, ArrayRemove, AotPush, AotSet, AotRemove, InlineSet, InlineInsert, InlineRemove, ReorderRoot }
 
-/// How comments between root entries are associated during [`reorder_root_anchored`](Editor::reorder_root_anchored).
+/// How comments between root entries are associated during
+/// [`reorder_root_anchored`](Editor::reorder_root_anchored).
+///
+/// Given this input and `reorder_root(&["meta", "base"])`:
+///
+/// ```toml
+/// base = "my-base"
+/// # comment
+/// [meta]
+/// kind = "leaf"
+/// ```
+///
+/// | Variant | Output |
+/// |---------|--------|
+/// | `Preceding` | `[meta]\nkind = "leaf"\nbase = "my-base"\n# comment\n` — comment follows `base` |
+/// | `Following` | `[meta]\n# comment\nkind = "leaf"\nbase = "my-base"\n` — comment stays with `[meta]` |
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CommentAnchor {
-    /// Comments stay with the preceding entry (default).
+    /// Comments stay with the preceding entry (default, structural).
     Preceding,
-    /// Comments stay with the following entry (e.g., comment before `[section]` moves with the section).
+    /// Comments stay with the following entry — use this when your project
+    /// convention places comments above the section they describe.
     Following,
 }
 // Helpers
@@ -453,12 +469,14 @@ impl Editor {
 
     /// Reorder root-level entries with explicit comment association.
     ///
+    /// See [`CommentAnchor`] for concrete before/after examples.
+    ///
     /// `anchor` controls which entry "owns" comments that appear between
     /// two root entries:
     ///
-    /// - [`CommentAnchor::Preceding`] (default) — comments stay with the
-    ///   entry above them.  This is the structural default because the
-    ///   TOML spec does not define comment association.
+    /// - [`CommentAnchor::Preceding`] (default, `reorder_root`) — comments
+    ///   stay with the entry above them.  Structural default: the TOML spec
+    ///   does not define comment association.
     ///
     /// - [`CommentAnchor::Following`] — comments stay with the entry below
     ///   them.  Use this when your project convention places comments above
