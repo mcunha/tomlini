@@ -136,6 +136,10 @@ impl<'a> serde::Serializer for &'a mut Serializer {
         use core::fmt::Write;
         write!(self.output, "\"{v}\"").map_err(|e| Error::Message(e.to_string()))
     }
+    fn collect_str<T: ?Sized + core::fmt::Display>(self, v: &T) -> Result<(), Error> {
+        use core::fmt::Write;
+        write!(self.output, "\"{v}\"").map_err(|e| Error::Message(e.to_string()))
+    }
     fn serialize_bytes(self, _v: &[u8]) -> Result<(), Error> { Err(Error::Message("bytes not supported".into())) }
     fn serialize_none(self) -> Result<(), Error> { Ok(()) }
     fn serialize_some<T: ?Sized + serde::Serialize>(self, value: &T) -> Result<(), Error> { value.serialize(self) }

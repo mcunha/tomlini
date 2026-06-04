@@ -138,6 +138,7 @@ extern crate alloc;
 
 #[cfg(feature = "std")]
 extern crate std;
+#[cfg(feature = "std")]
 use std::fmt;
 #[cfg(all(feature = "alloc", not(feature = "std")))]
 use alloc::fmt;

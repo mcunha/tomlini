@@ -7,7 +7,7 @@ use crate::{FlatDoc, SpanKind};
 use crate::edit;
 
 #[cfg(not(feature = "std"))]
-use alloc::string::String;
+use alloc::string::{String, ToString};
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 #[cfg(not(feature = "std"))]
