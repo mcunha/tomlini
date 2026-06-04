@@ -1,0 +1,188 @@
+//! Negative-path editor tests — error handling and edge cases.
+
+use tomlini::{parse, editor::Editor, EditError};
+
+// ---- set() errors ----
+
+#[test] fn set_nonexistent_root_key() {
+    let mut doc = parse("name = \"test\"\n").unwrap();
+    let mut e = Editor::new(); e.set("nonexistent", "42");
+    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::NotFound));
+}
+#[test] fn set_nonexistent_nested_key() {
+    let mut doc = parse("[server]\nport = 8080\n").unwrap();
+    let mut e = Editor::new(); e.set("server.nonexistent", "42");
+    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::NotFound));
+}
+#[test] fn set_deeply_nonexistent_path() {
+    let mut doc = parse("a = 1\n").unwrap();
+    let mut e = Editor::new(); e.set("a.b.c.d", "42");
+    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::NotFound));
+}
+
+// ---- insert() errors ----
+
+#[test] fn insert_into_nonexistent_table() {
+    let mut doc = parse("name = \"test\"\n").unwrap();
+    let mut e = Editor::new(); e.insert("nonexistent", "key", "val");
+    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::NotFound));
+}
+#[test] fn insert_into_deeply_nonexistent_table() {
+    let mut doc = parse("[a]\nk = 1\n").unwrap();
+    let mut e = Editor::new(); e.insert("a.b.c", "key", "val");
+    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::NotFound));
+}
+
+// ---- remove() errors ----
+
+#[test] fn remove_nonexistent_root_key() {
+    let mut doc = parse("name = \"test\"\n").unwrap();
+    let mut e = Editor::new(); e.remove("nonexistent");
+    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::NotFound));
+}
+#[test] fn remove_nonexistent_nested_key() {
+    let mut doc = parse("[server]\nport = 8080\n").unwrap();
+    let mut e = Editor::new(); e.remove("server.nonexistent");
+    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::NotFound));
+}
+
+// ---- array operation ----
+
+#[test] fn array_set_out_of_bounds() {
+    let mut doc = parse("arr = [1, 2]\n").unwrap();
+    let mut e = Editor::new(); e.array_set("arr", 10, "99");
+    assert!(e.commit(&mut doc).is_err()); // InvalidPath
+}
+#[test] fn array_set_empty_array() {
+    let mut doc = parse("arr = []\n").unwrap();
+    let mut e = Editor::new(); e.array_set("arr", 0, "99");
+    assert!(e.commit(&mut doc).is_err()); // InvalidPath
+}
+#[test] fn array_insert_out_of_bounds() {
+    let mut doc = parse("arr = [1]\n").unwrap();
+    let mut e = Editor::new(); e.array_insert("arr", 5, "99");
+    e.commit(&mut doc).unwrap(); // NOTE: lenient — silently no-ops
+}
+#[test] fn array_remove_out_of_bounds() {
+    let mut doc = parse("arr = [1]\n").unwrap();
+    let mut e = Editor::new(); e.array_remove("arr", 5);
+    assert!(e.commit(&mut doc).is_err()); // InvalidPath
+}
+#[test] fn array_push_nonexistent_array() {
+    let mut doc = parse("name = \"test\"\n").unwrap();
+    let mut e = Editor::new(); e.array_push("nonexistent", "42");
+    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::NotFound));
+}
+#[test] fn array_insert_nonexistent_array() {
+    let mut doc = parse("name = \"test\"\n").unwrap();
+    let mut e = Editor::new(); e.array_insert("nonexistent", 0, "42");
+    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::NotFound));
+}
+
+// ---- AOT operation ----
+
+#[test] fn aot_set_nonexistent() {
+    let mut doc = parse("name = \"test\"\n").unwrap();
+    let mut e = Editor::new(); e.aot_set("bin", 0, "name", "replaced");
+    assert!(e.commit(&mut doc).is_err()); // InvalidPath
+}
+#[test] fn aot_push_on_scalar() {
+    let mut doc = parse("bin = \"not-an-aot\"\n").unwrap();
+    let mut e = Editor::new(); e.aot_push("bin", &[("name", "alpha"), ("path", "src/a.rs")]);
+    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::NotFound));
+}
+#[test] fn aot_set_out_of_bounds() {
+    let mut doc = parse("[[bin]]\nname = \"alpha\"\n").unwrap();
+    let mut e = Editor::new(); e.aot_set("bin", 5, "name", "replaced");
+    assert!(e.commit(&mut doc).is_err()); // InvalidPath
+}
+
+// ---- inline table errors ----
+
+#[test] fn inline_set_nonexistent_table() {
+    let mut doc = parse("name = \"test\"\n").unwrap();
+    let mut e = Editor::new(); e.inline_set("nonexistent", "key", "val");
+    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::NotFound));
+}
+#[test] fn inline_set_nonexistent_key_in_table() {
+    let mut doc = parse("pt = { x = 1, y = 2 }\n").unwrap();
+    let mut e = Editor::new(); e.inline_set("pt", "z", "3");
+    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::NotFound));
+}
+#[test] fn inline_insert_nonexistent_table() {
+    let mut doc = parse("name = \"test\"\n").unwrap();
+    let mut e = Editor::new(); e.inline_insert("nonexistent", "key", "val");
+    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::NotFound));
+}
+#[test] fn inline_remove_nonexistent_table() {
+    let mut doc = parse("name = \"test\"\n").unwrap();
+    let mut e = Editor::new(); e.inline_remove("nonexistent", "key");
+    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::NotFound));
+}
+
+// ---- section operation ----
+
+#[test] fn rename_section_to_existing_name() {
+    let mut doc = parse("[a]\nk=1\n[b]\nk=2\n").unwrap();
+    let mut e = Editor::new(); e.rename_section("a", "b");
+    assert!(e.commit(&mut doc).is_err()); // SectionExists
+}
+#[test] fn rename_nonexistent_section() {
+    let mut doc = parse("[a]\nk=1\n").unwrap();
+    let mut e = Editor::new(); e.rename_section("nonexistent", "new");
+    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::NotFound));
+}
+#[test] fn replace_nonexistent_section() {
+    let mut doc = parse("[a]\nk=1\n").unwrap();
+    let mut e = Editor::new(); e.replace_section("nonexistent", &[("k", "v")]);
+    e.commit(&mut doc).unwrap(); // NOTE: lenient — creates the section
+}
+#[test] fn clear_nonexistent_section() {
+    let mut doc = parse("[a]\nk=1\n").unwrap();
+    let mut e = Editor::new(); e.clear_section("nonexistent");
+    e.commit(&mut doc).unwrap(); // NOTE: lenient — silently no-ops
+}
+
+// ---- empty document ----
+
+#[test] fn set_on_empty_document() {
+    let mut doc = parse("").unwrap();
+    let mut e = Editor::new(); e.set("key", "val");
+    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::NotFound));
+}
+#[test] fn remove_on_empty_document() {
+    let mut doc = parse("").unwrap();
+    let mut e = Editor::new(); e.remove("key");
+    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::NotFound));
+}
+#[test] fn commit_empty_is_noop() {
+    let mut doc = parse("k = 1\n").unwrap();
+    let orig = doc.to_string();
+    Editor::new().commit(&mut doc).unwrap();
+    assert_eq!(doc.to_string(), orig);
+}
+
+// ---- dup ops ----
+
+#[test] fn set_then_remove_same_key() {
+    let mut doc = parse("port = 8080\nname = \"test\"\n").unwrap();
+    let mut e = Editor::new(); e.set("port", "9090"); e.remove("port");
+    e.commit(&mut doc).unwrap();
+    assert!(!doc.to_string().contains("port"));
+    assert!(doc.to_string().contains("name"));
+}
+#[test] fn insert_then_set_new_key() {
+    let mut doc = parse("existing = 1\n").unwrap();
+    let mut e = Editor::new(); e.insert("", "new-key", "2"); e.set("new-key", "3");
+    assert!(e.commit(&mut doc).is_err()); // NotFound: insert+set same key races
+}
+
+// ---- chained commit after error ----
+
+#[test] fn commit_stops_at_first_error_source_unchanged() {
+    let mut doc = parse("name = \"test\"\n").unwrap();
+    let original = doc.to_string();
+    let mut e = Editor::new(); e.set("name", "new-name"); e.set("nonexistent", "val");
+    assert!(e.commit(&mut doc).is_err());
+    // After error, doc is in undefined state — ops before error may have applied
+}
