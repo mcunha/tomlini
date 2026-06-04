@@ -1984,10 +1984,7 @@ fn apply_bring(source: &str, start: &mut usize, end: &mut usize, bring: BringAlo
     // ---- extend end forward ----
     if bring.contains(BringAlong::COMMENTS_BELOW) || bring.contains(BringAlong::EVERYTHING_BELOW) {
         let stop_at_blank = !bring.contains(BringAlong::EVERYTHING_BELOW);
-        let mut pos = *end;
-        while pos < source.len() && source.as_bytes()[pos] != b'\n' { pos += 1; }
-        if pos < source.len() { pos += 1; } // skip past the \n
-        let mut scan = pos;
+        let mut scan = *end;
         while scan < source.len() {
             let line_start = scan;
             while scan < source.len() && source.as_bytes()[scan] != b'\n' { scan += 1; }

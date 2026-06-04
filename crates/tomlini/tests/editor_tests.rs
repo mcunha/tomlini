@@ -1,6 +1,6 @@
 //! Tests for the batch editor.
 
-use tomlini::{parse, EditError};
+use tomlini::{parse, EditError, editor::Editor, editor::BringAlong};
 
 // ============================================================
 // Read accessors
@@ -1226,4 +1226,127 @@ fn test_index_aot_and_dotted_mixed() {
     assert!(keys.contains(&"server".to_string()), "server should be in keys: {keys:?}");
     assert!(doc.has("server.http.enabled"), "server.http.enabled should exist");
     assert!(doc.is_table("server"), "server should be a table");
+}
+
+// ============================================================
+// BringAlong coverage — each flag x each _bring method
+// ============================================================
+
+// ── move_key_bring ──────────────────────────────────────────
+
+#[test]
+fn test_move_key_bring_comments_above() {
+    // Comment above the key moves with the key to the new table.
+    let input = "[a]\n# this describes k\nk = 1\nx = 2\n[b]\ny = 3\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = Editor::new();
+    editor.move_key_bring("a.k", "b.k", BringAlong::COMMENTS_ABOVE).commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    let comment_pos = out.find("# this describes k").unwrap();
+    let b_start = out.find("[b]").unwrap();
+    assert!(b_start < comment_pos, "comment should be inside [b] section after move: {out}");
+}
+
+#[test]
+fn test_move_key_bring_comments_below() {
+    let input = "[a]\nk = 1\n# comment after k\nx = 2\n[b]\ny = 3\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = Editor::new();
+    editor.move_key_bring("a.k", "b.k", BringAlong::COMMENTS_BELOW).commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    let comment_pos = out.find("# comment after k").unwrap();
+    let b_start = out.find("[b]").unwrap();
+    assert!(b_start < comment_pos, "comment below key should move to [b]: {out}");
+}
+
+#[test]
+fn test_move_key_bring_everything_above() {
+    // Everything above the key (including blank lines) moves.
+    let input = "[a]\nx = 2\n\n# comment for k\nk = 1\n[b]\ny = 3\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = Editor::new();
+    editor.move_key_bring("a.k", "b.k", BringAlong::EVERYTHING_ABOVE).commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    assert!(out.contains("# comment for k"), "comment lost: {out}");
+    // The blank line above the comment should also have moved — verify the comment is in [b]
+    let comment_pos = out.find("# comment for k").unwrap();
+    let b_pos = out.find("[b]").unwrap();
+    assert!(b_pos < comment_pos, "everything above should be in [b] section: {out}");
+}
+
+#[test]
+fn test_move_key_bring_combo_above_and_below() {
+    let input = "[a]\nx = 2\n# above k\nk = 1\n# below k\ny = 3\n[b]\nz = 4\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = Editor::new();
+    let bring = BringAlong::COMMENTS_ABOVE | BringAlong::COMMENTS_BELOW;
+    editor.move_key_bring("a.k", "b.k", bring).commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    let above_pos = out.find("# above k").unwrap();
+    let below_pos = out.find("# below k").unwrap();
+    let b_pos = out.find("[b]").unwrap();
+    assert!(b_pos < above_pos, "# above k should be in [b]: {out}");
+    assert!(b_pos < below_pos, "# below k should be in [b]: {out}");
+}
+
+// ── promote_key_bring ───────────────────────────────────────
+
+#[test]
+fn test_promote_key_bring_comments_above() {
+    let input = "[meta]\nname = \"proj\"\n# base configuration\nbase = \"my-base\"\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = Editor::new();
+    editor.promote_key_bring("meta.base", BringAlong::COMMENTS_ABOVE).commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    assert!(out.contains("base = \"my-base\""), "promoted key missing: {out}");
+    assert!(out.contains("# base configuration"), "comment lost: {out}");
+    // Comment should be at root level, near base
+    let comment_pos = out.find("# base configuration").unwrap();
+    let base_pos = out.find("base =").unwrap();
+    assert!(comment_pos < base_pos, "comment should precede base at root: {out}");
+}
+
+#[test]
+fn test_promote_key_bring_comments_below() {
+    let input = "[meta]\nname = \"proj\"\nbase = \"my-base\"\n# note about base\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = Editor::new();
+    editor.promote_key_bring("meta.base", BringAlong::COMMENTS_BELOW).commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    assert!(out.contains("# note about base"), "comment lost: {out}");
+    let comment_pos = out.find("# note about base").unwrap();
+    let base_pos = out.find("base =").unwrap();
+    assert!(base_pos < comment_pos, "comment should follow base at root: {out}");
+}
+
+// ── move_key_create_bring ───────────────────────────────────
+
+#[test]
+fn test_move_key_create_bring_comments_above() {
+    let input = "[a]\n# license info\nk = \"MIT\"\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = Editor::new();
+    editor.move_key_create_bring("a.k", "game.k", BringAlong::COMMENTS_ABOVE).commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    assert!(out.contains("[game]"), "new section not created: {out}");
+    assert!(out.contains("# license info"), "comment lost: {out}");
+    let comment_pos = out.find("# license info").unwrap();
+    let game_pos = out.find("[game]").unwrap();
+    assert!(game_pos < comment_pos, "comment should be inside [game]: {out}");
+}
+
+// ── reorder_root_bring combinations ─────────────────────────
+
+#[test]
+fn test_reorder_root_bring_combo() {
+    let input = "base = \"my-base\"\n# comment for meta\n[meta]\nkind = \"leaf\"\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = Editor::new();
+    let bring = BringAlong::COMMENTS_ABOVE | BringAlong::COMMENTS_BELOW;
+    editor.reorder_root_bring(&["meta", "base"], bring).commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    assert!(out.contains("# comment for meta"), "comment lost: {out}");
+    let comment_pos = out.find("# comment for meta").unwrap();
+    let meta_pos = out.find("[meta]").unwrap();
+    assert!(comment_pos < meta_pos, "comment should precede [meta]: {out}");
 }
