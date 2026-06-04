@@ -2,8 +2,6 @@
 # https://release-plz.ieni.dev/
 
 [workspace]
-# Conventional commits determine the bump level.
-# fix: → patch, feat: → minor, feat!: → major
 changelog_update = true
 
 # Don't publish these crates
@@ -11,11 +9,12 @@ changelog_update = true
 name = "toml_benchmarks"
 publish = false
 
-# Publish order — tomlini first (tomlini_serde depends on it)
+# Publish order — tomlini first (tomlini_serde depends on it).
+# Set `publish = true` after removing `publish = false` from the Cargo.toml files.
 [[package]]
 name = "tomlini"
-publish = true
+publish = false
 
 [[package]]
 name = "tomlini_serde"
-publish = true
+publish = false
