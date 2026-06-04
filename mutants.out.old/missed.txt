@@ -1,8 +1,0 @@
-crates/tomlini/src/edit.rs:61:25: replace < with <= in build_index
-crates/tomlini/src/edit.rs:72:25: delete match arm SpanKind::ArrayTableClose in build_index
-crates/tomlini/src/edit.rs:70:31: replace += with -= in build_index
-crates/tomlini/src/edit.rs:70:31: replace += with *= in build_index
-crates/tomlini/src/edit.rs:72:58: replace += with -= in build_index
-crates/tomlini/src/edit.rs:72:58: replace += with *= in build_index
-crates/tomlini/src/edit.rs:73:34: replace += with -= in build_index
-crates/tomlini/src/edit.rs:73:34: replace += with *= in build_index
