@@ -12,6 +12,9 @@ name: Release
 
 permissions: read-all  # zizmor: ignore[excessive-permissions]
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 on:
   push:
     branches: [main]
