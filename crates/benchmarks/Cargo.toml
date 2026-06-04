@@ -24,5 +24,9 @@ harness = false
 name = "6-serde"
 harness = false
 
+[[bench]]
+name = "7-ini"
+harness = false
+
 [lints]
 workspace = true
