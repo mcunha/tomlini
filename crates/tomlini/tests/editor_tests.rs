@@ -1120,3 +1120,30 @@ fn test_chain_promote_then_reorder() {
     let meta_pos = out.find("[meta]").unwrap();
     assert!(base_pos < meta_pos, "base should be before [meta]: {out}");
 }
+
+// ── build_index coverage: dotted table headers ───────────────
+
+#[test]
+fn test_index_dotted_table_header() {
+    // Exercise build_index's Dot handling for [a.b.c] headers.
+    let input = "[profiles.dev]\nenv = \"dev\"\nport = 8000\n";
+    let mut doc = parse(input).unwrap();
+    // After parse: index is None. Trigger build via accessor.
+    assert!(doc.has("profiles.dev.env"), "should find profiles.dev.env");
+    assert!(doc.has("profiles.dev.port"), "should find profiles.dev.port");
+    assert!(!doc.has("profiles.env"), "should not find wrong path");
+    // is_table on the first segment
+    assert!(doc.is_table("profiles"), "profiles should be a table");
+}
+
+#[test]
+fn test_index_aot_and_dotted_mixed() {
+    // Exercise ArrayTableClose + Dot in build_index.
+    let input = "[[server]]\nhost = \"a\"\nport = 1\n[server.http]\nenabled = true\n";
+    let mut doc = parse(input).unwrap();
+    // AOT key is server (first segment), and sub-keys exist
+    let keys = doc.keys();
+    assert!(keys.contains(&"server".to_string()), "server should be in keys: {keys:?}");
+    assert!(doc.has("server.http.enabled"), "server.http.enabled should exist");
+    assert!(doc.is_table("server"), "server should be a table");
+}

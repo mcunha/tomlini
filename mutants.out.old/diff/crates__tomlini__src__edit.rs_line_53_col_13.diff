@@ -1,0 +1,21 @@
+--- crates/tomlini/src/edit.rs
++++ replace < with == in build_index
+@@ -45,17 +45,17 @@
+     clean_key(source, span)
+ }
+ 
+ pub(crate) fn build_index(doc: &FlatDoc) -> Vec<(Vec<String>, Entry)> {
+     let mut index = Vec::with_capacity(doc.spans.len() / 8);
+     let mut current_table: Vec<&str> = Vec::new();
+     let mut i = 0;
+ 
+-    while i < doc.spans.len() {
++    while i == /* ~ changed by cargo-mutants ~ */ doc.spans.len() {
+         let span = doc.spans[i];
+ 
+         match span.kind {
+             SpanKind::ArrayOpen | SpanKind::ArrayTableOpen => {
+                 let is_aot = span.kind == SpanKind::ArrayTableOpen;
+                 let mut path: Vec<&str> = Vec::with_capacity(4);
+                 i += 1;
+                 while i < doc.spans.len() {

@@ -1,0 +1,24 @@
+--- crates/tomlini/src/edit.rs
++++ delete match arm SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString in build_index
+@@ -55,20 +55,17 @@
+ 
+         match span.kind {
+             SpanKind::ArrayOpen | SpanKind::ArrayTableOpen => {
+                 let is_aot = span.kind == SpanKind::ArrayTableOpen;
+                 let mut path: Vec<&str> = Vec::with_capacity(4);
+                 i += 1;
+                 while i < doc.spans.len() {
+                     match doc.spans[i].kind {
+-                        SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {
+-                            path.push(clean_key(&doc.source, &doc.spans[i]));
+-                            i += 1;
+-                        }
++                         /* ~ changed by cargo-mutants ~ */
+                         SpanKind::Dot => { i += 1; }
+                         SpanKind::ArrayClose => {
+                             if !is_aot { current_table = path; }
+                             i += 1; break;
+                         }
+                         SpanKind::ArrayTableClose => { i += 1; break; }
+                         _ => { i += 1; break; }
+                     }

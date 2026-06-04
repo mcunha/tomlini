@@ -1,0 +1,1794 @@
+[
+  {
+    "diff": "--- crates/tomlini/src/lib.rs\n+++ replace FlatDoc::build_index_if_needed with ()\n@@ -836,19 +836,17 @@\n         }\n     }\n     out\n }\n \n #[cfg(feature = \"alloc\")]\n impl FlatDoc {\n     pub(crate) fn build_index_if_needed(&mut self) {\n-        if self.index.is_none() {\n-            self.index = Some(edit::build_index(self));\n-        }\n+        () /* ~ changed by cargo-mutants ~ */\n     }\n }\n \n #[cfg(feature = \"alloc\")]\n impl FlatDoc {\n     /// Create an empty document suitable for programmatic construction.\n     pub fn new() -> Self {\n         FlatDoc {\n",
+    "file": "crates/tomlini/src/lib.rs",
+    "function": {
+      "function_name": "FlatDoc::build_index_if_needed",
+      "return_type": "",
+      "span": {
+        "end": {
+          "column": 6,
+          "line": 847
+        },
+        "start": {
+          "column": 5,
+          "line": 843
+        }
+      }
+    },
+    "genre": "FnValue",
+    "name": "crates/tomlini/src/lib.rs:844:9: replace FlatDoc::build_index_if_needed with ()",
+    "package": "tomlini",
+    "replacement": "()",
+    "span": {
+      "end": {
+        "column": 10,
+        "line": 846
+      },
+      "start": {
+        "column": 9,
+        "line": 844
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace build_index -> Vec<(Vec<String>, Entry)> with vec![]\n@@ -41,91 +41,17 @@\n \n /// Convenience: clean a key referenced by a span index.\n #[inline]\n pub(crate) fn clean_key_span<'s>(source: &'s str, span: &Span) -> &'s str {\n     clean_key(source, span)\n }\n \n pub(crate) fn build_index(doc: &FlatDoc) -> Vec<(Vec<String>, Entry)> {\n-    let mut index = Vec::with_capacity(doc.spans.len() / 8);\n-    let mut current_table: Vec<&str> = Vec::new();\n-    let mut i = 0;\n-\n-    while i < doc.spans.len() {\n-        let span = doc.spans[i];\n-\n-        match span.kind {\n-            SpanKind::ArrayOpen | SpanKind::ArrayTableOpen => {\n-                let is_aot = span.kind == SpanKind::ArrayTableOpen;\n-                let mut path: Vec<&str> = Vec::with_capacity(4);\n-                i += 1;\n-                while i < doc.spans.len() {\n-                    match doc.spans[i].kind {\n-                        SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n-                            path.push(clean_key(&doc.source, &doc.spans[i]));\n-                            i += 1;\n-                        }\n-                        SpanKind::Dot => { i += 1; }\n-                        SpanKind::ArrayClose => {\n-                            if !is_aot { current_table = path; }\n-                            i += 1; break;\n-                        }\n-                        SpanKind::ArrayTableClose => { i += 1; break; }\n-                        _ => { i += 1; break; }\n-                    }\n-                }\n-                continue;\n-            }\n-\n-            SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n-                let mut key_parts: Vec<&str> = Vec::with_capacity(4);\n-                key_parts.push(clean_key(&doc.source, &span));\n-                let key_start = i;\n-                let mut j = i + 1;\n-\n-                loop {\n-                    if j >= doc.spans.len() { break; }\n-                    match doc.spans[j].kind {\n-                        SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { j += 1; }\n-                        SpanKind::Dot => { j += 1; }\n-                        SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n-                            key_parts.push(clean_key(&doc.source, &doc.spans[j]));\n-                            j += 1;\n-                        }\n-                        SpanKind::Equals => {\n-                            j += 1;\n-                            let mut k = j;\n-                            while k < doc.spans.len() {\n-                                if is_value_kind(doc.spans[k].kind) {\n-                                    let path: Vec<String> = current_table.iter()\n-                                        .chain(&key_parts)\n-                                        .map(|s| s.to_string())\n-                                        .collect();\n-                                    index.push((path, Entry { key_start, value_idx: k }));\n-                                    i = k;\n-                                    break;\n-                                }\n-                                match doc.spans[k].kind {\n-                                    SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { k += 1; }\n-                                    _ => { break; }\n-                                }\n-                            }\n-                            break;\n-                        }\n-                        _ => { break; }\n-                    }\n-                }\n-                i += 1;\n-            }\n-            _ => { i += 1; }\n-        }\n-    }\n-\n-    index\n+    vec![] /* ~ changed by cargo-mutants ~ */\n }\n \n pub(crate) fn adjust_spans(spans: &mut [Span], pos: u32, delta: i32) {\n     if delta == 0 { return; }\n     let first = match spans.binary_search_by_key(&pos, |s| s.start) {\n         Ok(idx) => idx,\n         Err(idx) => idx,\n     };\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "FnValue",
+    "name": "crates/tomlini/src/edit.rs:49:5: replace build_index -> Vec<(Vec<String>, Entry)> with vec![]",
+    "package": "tomlini",
+    "replacement": "vec![]",
+    "span": {
+      "end": {
+        "column": 10,
+        "line": 123
+      },
+      "start": {
+        "column": 5,
+        "line": 49
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace build_index -> Vec<(Vec<String>, Entry)> with vec![(vec![], Default::default())]\n@@ -41,91 +41,17 @@\n \n /// Convenience: clean a key referenced by a span index.\n #[inline]\n pub(crate) fn clean_key_span<'s>(source: &'s str, span: &Span) -> &'s str {\n     clean_key(source, span)\n }\n \n pub(crate) fn build_index(doc: &FlatDoc) -> Vec<(Vec<String>, Entry)> {\n-    let mut index = Vec::with_capacity(doc.spans.len() / 8);\n-    let mut current_table: Vec<&str> = Vec::new();\n-    let mut i = 0;\n-\n-    while i < doc.spans.len() {\n-        let span = doc.spans[i];\n-\n-        match span.kind {\n-            SpanKind::ArrayOpen | SpanKind::ArrayTableOpen => {\n-                let is_aot = span.kind == SpanKind::ArrayTableOpen;\n-                let mut path: Vec<&str> = Vec::with_capacity(4);\n-                i += 1;\n-                while i < doc.spans.len() {\n-                    match doc.spans[i].kind {\n-                        SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n-                            path.push(clean_key(&doc.source, &doc.spans[i]));\n-                            i += 1;\n-                        }\n-                        SpanKind::Dot => { i += 1; }\n-                        SpanKind::ArrayClose => {\n-                            if !is_aot { current_table = path; }\n-                            i += 1; break;\n-                        }\n-                        SpanKind::ArrayTableClose => { i += 1; break; }\n-                        _ => { i += 1; break; }\n-                    }\n-                }\n-                continue;\n-            }\n-\n-            SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n-                let mut key_parts: Vec<&str> = Vec::with_capacity(4);\n-                key_parts.push(clean_key(&doc.source, &span));\n-                let key_start = i;\n-                let mut j = i + 1;\n-\n-                loop {\n-                    if j >= doc.spans.len() { break; }\n-                    match doc.spans[j].kind {\n-                        SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { j += 1; }\n-                        SpanKind::Dot => { j += 1; }\n-                        SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n-                            key_parts.push(clean_key(&doc.source, &doc.spans[j]));\n-                            j += 1;\n-                        }\n-                        SpanKind::Equals => {\n-                            j += 1;\n-                            let mut k = j;\n-                            while k < doc.spans.len() {\n-                                if is_value_kind(doc.spans[k].kind) {\n-                                    let path: Vec<String> = current_table.iter()\n-                                        .chain(&key_parts)\n-                                        .map(|s| s.to_string())\n-                                        .collect();\n-                                    index.push((path, Entry { key_start, value_idx: k }));\n-                                    i = k;\n-                                    break;\n-                                }\n-                                match doc.spans[k].kind {\n-                                    SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { k += 1; }\n-                                    _ => { break; }\n-                                }\n-                            }\n-                            break;\n-                        }\n-                        _ => { break; }\n-                    }\n-                }\n-                i += 1;\n-            }\n-            _ => { i += 1; }\n-        }\n-    }\n-\n-    index\n+    vec![(vec![], Default::default())] /* ~ changed by cargo-mutants ~ */\n }\n \n pub(crate) fn adjust_spans(spans: &mut [Span], pos: u32, delta: i32) {\n     if delta == 0 { return; }\n     let first = match spans.binary_search_by_key(&pos, |s| s.start) {\n         Ok(idx) => idx,\n         Err(idx) => idx,\n     };\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "FnValue",
+    "name": "crates/tomlini/src/edit.rs:49:5: replace build_index -> Vec<(Vec<String>, Entry)> with vec![(vec![], Default::default())]",
+    "package": "tomlini",
+    "replacement": "vec![(vec![], Default::default())]",
+    "span": {
+      "end": {
+        "column": 10,
+        "line": 123
+      },
+      "start": {
+        "column": 5,
+        "line": 49
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace build_index -> Vec<(Vec<String>, Entry)> with vec![(vec![String::new()], Default::default())]\n@@ -41,91 +41,17 @@\n \n /// Convenience: clean a key referenced by a span index.\n #[inline]\n pub(crate) fn clean_key_span<'s>(source: &'s str, span: &Span) -> &'s str {\n     clean_key(source, span)\n }\n \n pub(crate) fn build_index(doc: &FlatDoc) -> Vec<(Vec<String>, Entry)> {\n-    let mut index = Vec::with_capacity(doc.spans.len() / 8);\n-    let mut current_table: Vec<&str> = Vec::new();\n-    let mut i = 0;\n-\n-    while i < doc.spans.len() {\n-        let span = doc.spans[i];\n-\n-        match span.kind {\n-            SpanKind::ArrayOpen | SpanKind::ArrayTableOpen => {\n-                let is_aot = span.kind == SpanKind::ArrayTableOpen;\n-                let mut path: Vec<&str> = Vec::with_capacity(4);\n-                i += 1;\n-                while i < doc.spans.len() {\n-                    match doc.spans[i].kind {\n-                        SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n-                            path.push(clean_key(&doc.source, &doc.spans[i]));\n-                            i += 1;\n-                        }\n-                        SpanKind::Dot => { i += 1; }\n-                        SpanKind::ArrayClose => {\n-                            if !is_aot { current_table = path; }\n-                            i += 1; break;\n-                        }\n-                        SpanKind::ArrayTableClose => { i += 1; break; }\n-                        _ => { i += 1; break; }\n-                    }\n-                }\n-                continue;\n-            }\n-\n-            SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n-                let mut key_parts: Vec<&str> = Vec::with_capacity(4);\n-                key_parts.push(clean_key(&doc.source, &span));\n-                let key_start = i;\n-                let mut j = i + 1;\n-\n-                loop {\n-                    if j >= doc.spans.len() { break; }\n-                    match doc.spans[j].kind {\n-                        SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { j += 1; }\n-                        SpanKind::Dot => { j += 1; }\n-                        SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n-                            key_parts.push(clean_key(&doc.source, &doc.spans[j]));\n-                            j += 1;\n-                        }\n-                        SpanKind::Equals => {\n-                            j += 1;\n-                            let mut k = j;\n-                            while k < doc.spans.len() {\n-                                if is_value_kind(doc.spans[k].kind) {\n-                                    let path: Vec<String> = current_table.iter()\n-                                        .chain(&key_parts)\n-                                        .map(|s| s.to_string())\n-                                        .collect();\n-                                    index.push((path, Entry { key_start, value_idx: k }));\n-                                    i = k;\n-                                    break;\n-                                }\n-                                match doc.spans[k].kind {\n-                                    SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { k += 1; }\n-                                    _ => { break; }\n-                                }\n-                            }\n-                            break;\n-                        }\n-                        _ => { break; }\n-                    }\n-                }\n-                i += 1;\n-            }\n-            _ => { i += 1; }\n-        }\n-    }\n-\n-    index\n+    vec![(vec![String::new()], Default::default())] /* ~ changed by cargo-mutants ~ */\n }\n \n pub(crate) fn adjust_spans(spans: &mut [Span], pos: u32, delta: i32) {\n     if delta == 0 { return; }\n     let first = match spans.binary_search_by_key(&pos, |s| s.start) {\n         Ok(idx) => idx,\n         Err(idx) => idx,\n     };\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "FnValue",
+    "name": "crates/tomlini/src/edit.rs:49:5: replace build_index -> Vec<(Vec<String>, Entry)> with vec![(vec![String::new()], Default::default())]",
+    "package": "tomlini",
+    "replacement": "vec![(vec![String::new()], Default::default())]",
+    "span": {
+      "end": {
+        "column": 10,
+        "line": 123
+      },
+      "start": {
+        "column": 5,
+        "line": 49
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace build_index -> Vec<(Vec<String>, Entry)> with vec![(vec![\"xyzzy\".into()], Default::default())]\n@@ -41,91 +41,17 @@\n \n /// Convenience: clean a key referenced by a span index.\n #[inline]\n pub(crate) fn clean_key_span<'s>(source: &'s str, span: &Span) -> &'s str {\n     clean_key(source, span)\n }\n \n pub(crate) fn build_index(doc: &FlatDoc) -> Vec<(Vec<String>, Entry)> {\n-    let mut index = Vec::with_capacity(doc.spans.len() / 8);\n-    let mut current_table: Vec<&str> = Vec::new();\n-    let mut i = 0;\n-\n-    while i < doc.spans.len() {\n-        let span = doc.spans[i];\n-\n-        match span.kind {\n-            SpanKind::ArrayOpen | SpanKind::ArrayTableOpen => {\n-                let is_aot = span.kind == SpanKind::ArrayTableOpen;\n-                let mut path: Vec<&str> = Vec::with_capacity(4);\n-                i += 1;\n-                while i < doc.spans.len() {\n-                    match doc.spans[i].kind {\n-                        SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n-                            path.push(clean_key(&doc.source, &doc.spans[i]));\n-                            i += 1;\n-                        }\n-                        SpanKind::Dot => { i += 1; }\n-                        SpanKind::ArrayClose => {\n-                            if !is_aot { current_table = path; }\n-                            i += 1; break;\n-                        }\n-                        SpanKind::ArrayTableClose => { i += 1; break; }\n-                        _ => { i += 1; break; }\n-                    }\n-                }\n-                continue;\n-            }\n-\n-            SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n-                let mut key_parts: Vec<&str> = Vec::with_capacity(4);\n-                key_parts.push(clean_key(&doc.source, &span));\n-                let key_start = i;\n-                let mut j = i + 1;\n-\n-                loop {\n-                    if j >= doc.spans.len() { break; }\n-                    match doc.spans[j].kind {\n-                        SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { j += 1; }\n-                        SpanKind::Dot => { j += 1; }\n-                        SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n-                            key_parts.push(clean_key(&doc.source, &doc.spans[j]));\n-                            j += 1;\n-                        }\n-                        SpanKind::Equals => {\n-                            j += 1;\n-                            let mut k = j;\n-                            while k < doc.spans.len() {\n-                                if is_value_kind(doc.spans[k].kind) {\n-                                    let path: Vec<String> = current_table.iter()\n-                                        .chain(&key_parts)\n-                                        .map(|s| s.to_string())\n-                                        .collect();\n-                                    index.push((path, Entry { key_start, value_idx: k }));\n-                                    i = k;\n-                                    break;\n-                                }\n-                                match doc.spans[k].kind {\n-                                    SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { k += 1; }\n-                                    _ => { break; }\n-                                }\n-                            }\n-                            break;\n-                        }\n-                        _ => { break; }\n-                    }\n-                }\n-                i += 1;\n-            }\n-            _ => { i += 1; }\n-        }\n-    }\n-\n-    index\n+    vec![(vec![\"xyzzy\".into()], Default::default())] /* ~ changed by cargo-mutants ~ */\n }\n \n pub(crate) fn adjust_spans(spans: &mut [Span], pos: u32, delta: i32) {\n     if delta == 0 { return; }\n     let first = match spans.binary_search_by_key(&pos, |s| s.start) {\n         Ok(idx) => idx,\n         Err(idx) => idx,\n     };\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "FnValue",
+    "name": "crates/tomlini/src/edit.rs:49:5: replace build_index -> Vec<(Vec<String>, Entry)> with vec![(vec![\"xyzzy\".into()], Default::default())]",
+    "package": "tomlini",
+    "replacement": "vec![(vec![\"xyzzy\".into()], Default::default())]",
+    "span": {
+      "end": {
+        "column": 10,
+        "line": 123
+      },
+      "start": {
+        "column": 5,
+        "line": 49
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace < with == in build_index\n@@ -45,17 +45,17 @@\n     clean_key(source, span)\n }\n \n pub(crate) fn build_index(doc: &FlatDoc) -> Vec<(Vec<String>, Entry)> {\n     let mut index = Vec::with_capacity(doc.spans.len() / 8);\n     let mut current_table: Vec<&str> = Vec::new();\n     let mut i = 0;\n \n-    while i < doc.spans.len() {\n+    while i == /* ~ changed by cargo-mutants ~ */ doc.spans.len() {\n         let span = doc.spans[i];\n \n         match span.kind {\n             SpanKind::ArrayOpen | SpanKind::ArrayTableOpen => {\n                 let is_aot = span.kind == SpanKind::ArrayTableOpen;\n                 let mut path: Vec<&str> = Vec::with_capacity(4);\n                 i += 1;\n                 while i < doc.spans.len() {\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:53:13: replace < with == in build_index",
+    "package": "tomlini",
+    "replacement": "==",
+    "span": {
+      "end": {
+        "column": 14,
+        "line": 53
+      },
+      "start": {
+        "column": 13,
+        "line": 53
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace < with > in build_index\n@@ -45,17 +45,17 @@\n     clean_key(source, span)\n }\n \n pub(crate) fn build_index(doc: &FlatDoc) -> Vec<(Vec<String>, Entry)> {\n     let mut index = Vec::with_capacity(doc.spans.len() / 8);\n     let mut current_table: Vec<&str> = Vec::new();\n     let mut i = 0;\n \n-    while i < doc.spans.len() {\n+    while i > /* ~ changed by cargo-mutants ~ */ doc.spans.len() {\n         let span = doc.spans[i];\n \n         match span.kind {\n             SpanKind::ArrayOpen | SpanKind::ArrayTableOpen => {\n                 let is_aot = span.kind == SpanKind::ArrayTableOpen;\n                 let mut path: Vec<&str> = Vec::with_capacity(4);\n                 i += 1;\n                 while i < doc.spans.len() {\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:53:13: replace < with > in build_index",
+    "package": "tomlini",
+    "replacement": ">",
+    "span": {
+      "end": {
+        "column": 14,
+        "line": 53
+      },
+      "start": {
+        "column": 13,
+        "line": 53
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace < with <= in build_index\n@@ -45,17 +45,17 @@\n     clean_key(source, span)\n }\n \n pub(crate) fn build_index(doc: &FlatDoc) -> Vec<(Vec<String>, Entry)> {\n     let mut index = Vec::with_capacity(doc.spans.len() / 8);\n     let mut current_table: Vec<&str> = Vec::new();\n     let mut i = 0;\n \n-    while i < doc.spans.len() {\n+    while i <= /* ~ changed by cargo-mutants ~ */ doc.spans.len() {\n         let span = doc.spans[i];\n \n         match span.kind {\n             SpanKind::ArrayOpen | SpanKind::ArrayTableOpen => {\n                 let is_aot = span.kind == SpanKind::ArrayTableOpen;\n                 let mut path: Vec<&str> = Vec::with_capacity(4);\n                 i += 1;\n                 while i < doc.spans.len() {\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:53:13: replace < with <= in build_index",
+    "package": "tomlini",
+    "replacement": "<=",
+    "span": {
+      "end": {
+        "column": 14,
+        "line": 53
+      },
+      "start": {
+        "column": 13,
+        "line": 53
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ delete match arm SpanKind::ArrayOpen | SpanKind::ArrayTableOpen in build_index\n@@ -49,37 +49,17 @@\n     let mut index = Vec::with_capacity(doc.spans.len() / 8);\n     let mut current_table: Vec<&str> = Vec::new();\n     let mut i = 0;\n \n     while i < doc.spans.len() {\n         let span = doc.spans[i];\n \n         match span.kind {\n-            SpanKind::ArrayOpen | SpanKind::ArrayTableOpen => {\n-                let is_aot = span.kind == SpanKind::ArrayTableOpen;\n-                let mut path: Vec<&str> = Vec::with_capacity(4);\n-                i += 1;\n-                while i < doc.spans.len() {\n-                    match doc.spans[i].kind {\n-                        SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n-                            path.push(clean_key(&doc.source, &doc.spans[i]));\n-                            i += 1;\n-                        }\n-                        SpanKind::Dot => { i += 1; }\n-                        SpanKind::ArrayClose => {\n-                            if !is_aot { current_table = path; }\n-                            i += 1; break;\n-                        }\n-                        SpanKind::ArrayTableClose => { i += 1; break; }\n-                        _ => { i += 1; break; }\n-                    }\n-                }\n-                continue;\n-            }\n+             /* ~ changed by cargo-mutants ~ */\n \n             SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                 let mut key_parts: Vec<&str> = Vec::with_capacity(4);\n                 key_parts.push(clean_key(&doc.source, &span));\n                 let key_start = i;\n                 let mut j = i + 1;\n \n                 loop {\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "MatchArm",
+    "name": "crates/tomlini/src/edit.rs:57:13: delete match arm SpanKind::ArrayOpen | SpanKind::ArrayTableOpen in build_index",
+    "package": "tomlini",
+    "replacement": "",
+    "span": {
+      "end": {
+        "column": 14,
+        "line": 77
+      },
+      "start": {
+        "column": 13,
+        "line": 57
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ delete match arm SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString in build_index\n@@ -71,56 +71,17 @@\n                         }\n                         SpanKind::ArrayTableClose => { i += 1; break; }\n                         _ => { i += 1; break; }\n                     }\n                 }\n                 continue;\n             }\n \n-            SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n-                let mut key_parts: Vec<&str> = Vec::with_capacity(4);\n-                key_parts.push(clean_key(&doc.source, &span));\n-                let key_start = i;\n-                let mut j = i + 1;\n-\n-                loop {\n-                    if j >= doc.spans.len() { break; }\n-                    match doc.spans[j].kind {\n-                        SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { j += 1; }\n-                        SpanKind::Dot => { j += 1; }\n-                        SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n-                            key_parts.push(clean_key(&doc.source, &doc.spans[j]));\n-                            j += 1;\n-                        }\n-                        SpanKind::Equals => {\n-                            j += 1;\n-                            let mut k = j;\n-                            while k < doc.spans.len() {\n-                                if is_value_kind(doc.spans[k].kind) {\n-                                    let path: Vec<String> = current_table.iter()\n-                                        .chain(&key_parts)\n-                                        .map(|s| s.to_string())\n-                                        .collect();\n-                                    index.push((path, Entry { key_start, value_idx: k }));\n-                                    i = k;\n-                                    break;\n-                                }\n-                                match doc.spans[k].kind {\n-                                    SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { k += 1; }\n-                                    _ => { break; }\n-                                }\n-                            }\n-                            break;\n-                        }\n-                        _ => { break; }\n-                    }\n-                }\n-                i += 1;\n-            }\n+             /* ~ changed by cargo-mutants ~ */\n             _ => { i += 1; }\n         }\n     }\n \n     index\n }\n \n pub(crate) fn adjust_spans(spans: &mut [Span], pos: u32, delta: i32) {\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "MatchArm",
+    "name": "crates/tomlini/src/edit.rs:79:13: delete match arm SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString in build_index",
+    "package": "tomlini",
+    "replacement": "",
+    "span": {
+      "end": {
+        "column": 14,
+        "line": 118
+      },
+      "start": {
+        "column": 13,
+        "line": 79
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace == with != in build_index\n@@ -50,17 +50,17 @@\n     let mut current_table: Vec<&str> = Vec::new();\n     let mut i = 0;\n \n     while i < doc.spans.len() {\n         let span = doc.spans[i];\n \n         match span.kind {\n             SpanKind::ArrayOpen | SpanKind::ArrayTableOpen => {\n-                let is_aot = span.kind == SpanKind::ArrayTableOpen;\n+                let is_aot = span.kind != /* ~ changed by cargo-mutants ~ */ SpanKind::ArrayTableOpen;\n                 let mut path: Vec<&str> = Vec::with_capacity(4);\n                 i += 1;\n                 while i < doc.spans.len() {\n                     match doc.spans[i].kind {\n                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                             path.push(clean_key(&doc.source, &doc.spans[i]));\n                             i += 1;\n                         }\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:58:40: replace == with != in build_index",
+    "package": "tomlini",
+    "replacement": "!=",
+    "span": {
+      "end": {
+        "column": 42,
+        "line": 58
+      },
+      "start": {
+        "column": 40,
+        "line": 58
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace += with -= in build_index\n@@ -52,17 +52,17 @@\n \n     while i < doc.spans.len() {\n         let span = doc.spans[i];\n \n         match span.kind {\n             SpanKind::ArrayOpen | SpanKind::ArrayTableOpen => {\n                 let is_aot = span.kind == SpanKind::ArrayTableOpen;\n                 let mut path: Vec<&str> = Vec::with_capacity(4);\n-                i += 1;\n+                i -= /* ~ changed by cargo-mutants ~ */ 1;\n                 while i < doc.spans.len() {\n                     match doc.spans[i].kind {\n                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                             path.push(clean_key(&doc.source, &doc.spans[i]));\n                             i += 1;\n                         }\n                         SpanKind::Dot => { i += 1; }\n                         SpanKind::ArrayClose => {\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:60:19: replace += with -= in build_index",
+    "package": "tomlini",
+    "replacement": "-=",
+    "span": {
+      "end": {
+        "column": 21,
+        "line": 60
+      },
+      "start": {
+        "column": 19,
+        "line": 60
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace += with *= in build_index\n@@ -52,17 +52,17 @@\n \n     while i < doc.spans.len() {\n         let span = doc.spans[i];\n \n         match span.kind {\n             SpanKind::ArrayOpen | SpanKind::ArrayTableOpen => {\n                 let is_aot = span.kind == SpanKind::ArrayTableOpen;\n                 let mut path: Vec<&str> = Vec::with_capacity(4);\n-                i += 1;\n+                i *= /* ~ changed by cargo-mutants ~ */ 1;\n                 while i < doc.spans.len() {\n                     match doc.spans[i].kind {\n                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                             path.push(clean_key(&doc.source, &doc.spans[i]));\n                             i += 1;\n                         }\n                         SpanKind::Dot => { i += 1; }\n                         SpanKind::ArrayClose => {\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:60:19: replace += with *= in build_index",
+    "package": "tomlini",
+    "replacement": "*=",
+    "span": {
+      "end": {
+        "column": 21,
+        "line": 60
+      },
+      "start": {
+        "column": 19,
+        "line": 60
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace < with == in build_index\n@@ -53,17 +53,17 @@\n     while i < doc.spans.len() {\n         let span = doc.spans[i];\n \n         match span.kind {\n             SpanKind::ArrayOpen | SpanKind::ArrayTableOpen => {\n                 let is_aot = span.kind == SpanKind::ArrayTableOpen;\n                 let mut path: Vec<&str> = Vec::with_capacity(4);\n                 i += 1;\n-                while i < doc.spans.len() {\n+                while i == /* ~ changed by cargo-mutants ~ */ doc.spans.len() {\n                     match doc.spans[i].kind {\n                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                             path.push(clean_key(&doc.source, &doc.spans[i]));\n                             i += 1;\n                         }\n                         SpanKind::Dot => { i += 1; }\n                         SpanKind::ArrayClose => {\n                             if !is_aot { current_table = path; }\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:61:25: replace < with == in build_index",
+    "package": "tomlini",
+    "replacement": "==",
+    "span": {
+      "end": {
+        "column": 26,
+        "line": 61
+      },
+      "start": {
+        "column": 25,
+        "line": 61
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace < with > in build_index\n@@ -53,17 +53,17 @@\n     while i < doc.spans.len() {\n         let span = doc.spans[i];\n \n         match span.kind {\n             SpanKind::ArrayOpen | SpanKind::ArrayTableOpen => {\n                 let is_aot = span.kind == SpanKind::ArrayTableOpen;\n                 let mut path: Vec<&str> = Vec::with_capacity(4);\n                 i += 1;\n-                while i < doc.spans.len() {\n+                while i > /* ~ changed by cargo-mutants ~ */ doc.spans.len() {\n                     match doc.spans[i].kind {\n                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                             path.push(clean_key(&doc.source, &doc.spans[i]));\n                             i += 1;\n                         }\n                         SpanKind::Dot => { i += 1; }\n                         SpanKind::ArrayClose => {\n                             if !is_aot { current_table = path; }\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:61:25: replace < with > in build_index",
+    "package": "tomlini",
+    "replacement": ">",
+    "span": {
+      "end": {
+        "column": 26,
+        "line": 61
+      },
+      "start": {
+        "column": 25,
+        "line": 61
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace < with <= in build_index\n@@ -53,17 +53,17 @@\n     while i < doc.spans.len() {\n         let span = doc.spans[i];\n \n         match span.kind {\n             SpanKind::ArrayOpen | SpanKind::ArrayTableOpen => {\n                 let is_aot = span.kind == SpanKind::ArrayTableOpen;\n                 let mut path: Vec<&str> = Vec::with_capacity(4);\n                 i += 1;\n-                while i < doc.spans.len() {\n+                while i <= /* ~ changed by cargo-mutants ~ */ doc.spans.len() {\n                     match doc.spans[i].kind {\n                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                             path.push(clean_key(&doc.source, &doc.spans[i]));\n                             i += 1;\n                         }\n                         SpanKind::Dot => { i += 1; }\n                         SpanKind::ArrayClose => {\n                             if !is_aot { current_table = path; }\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:61:25: replace < with <= in build_index",
+    "package": "tomlini",
+    "replacement": "<=",
+    "span": {
+      "end": {
+        "column": 26,
+        "line": 61
+      },
+      "start": {
+        "column": 25,
+        "line": 61
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ delete match arm SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString in build_index\n@@ -55,20 +55,17 @@\n \n         match span.kind {\n             SpanKind::ArrayOpen | SpanKind::ArrayTableOpen => {\n                 let is_aot = span.kind == SpanKind::ArrayTableOpen;\n                 let mut path: Vec<&str> = Vec::with_capacity(4);\n                 i += 1;\n                 while i < doc.spans.len() {\n                     match doc.spans[i].kind {\n-                        SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n-                            path.push(clean_key(&doc.source, &doc.spans[i]));\n-                            i += 1;\n-                        }\n+                         /* ~ changed by cargo-mutants ~ */\n                         SpanKind::Dot => { i += 1; }\n                         SpanKind::ArrayClose => {\n                             if !is_aot { current_table = path; }\n                             i += 1; break;\n                         }\n                         SpanKind::ArrayTableClose => { i += 1; break; }\n                         _ => { i += 1; break; }\n                     }\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "MatchArm",
+    "name": "crates/tomlini/src/edit.rs:63:25: delete match arm SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString in build_index",
+    "package": "tomlini",
+    "replacement": "",
+    "span": {
+      "end": {
+        "column": 26,
+        "line": 66
+      },
+      "start": {
+        "column": 25,
+        "line": 63
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ delete match arm SpanKind::Dot in build_index\n@@ -59,17 +59,17 @@\n                 let mut path: Vec<&str> = Vec::with_capacity(4);\n                 i += 1;\n                 while i < doc.spans.len() {\n                     match doc.spans[i].kind {\n                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                             path.push(clean_key(&doc.source, &doc.spans[i]));\n                             i += 1;\n                         }\n-                        SpanKind::Dot => { i += 1; }\n+                         /* ~ changed by cargo-mutants ~ */\n                         SpanKind::ArrayClose => {\n                             if !is_aot { current_table = path; }\n                             i += 1; break;\n                         }\n                         SpanKind::ArrayTableClose => { i += 1; break; }\n                         _ => { i += 1; break; }\n                     }\n                 }\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "MatchArm",
+    "name": "crates/tomlini/src/edit.rs:67:25: delete match arm SpanKind::Dot in build_index",
+    "package": "tomlini",
+    "replacement": "",
+    "span": {
+      "end": {
+        "column": 53,
+        "line": 67
+      },
+      "start": {
+        "column": 25,
+        "line": 67
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ delete match arm SpanKind::ArrayClose in build_index\n@@ -60,20 +60,17 @@\n                 i += 1;\n                 while i < doc.spans.len() {\n                     match doc.spans[i].kind {\n                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                             path.push(clean_key(&doc.source, &doc.spans[i]));\n                             i += 1;\n                         }\n                         SpanKind::Dot => { i += 1; }\n-                        SpanKind::ArrayClose => {\n-                            if !is_aot { current_table = path; }\n-                            i += 1; break;\n-                        }\n+                         /* ~ changed by cargo-mutants ~ */\n                         SpanKind::ArrayTableClose => { i += 1; break; }\n                         _ => { i += 1; break; }\n                     }\n                 }\n                 continue;\n             }\n \n             SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "MatchArm",
+    "name": "crates/tomlini/src/edit.rs:68:25: delete match arm SpanKind::ArrayClose in build_index",
+    "package": "tomlini",
+    "replacement": "",
+    "span": {
+      "end": {
+        "column": 26,
+        "line": 71
+      },
+      "start": {
+        "column": 25,
+        "line": 68
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ delete match arm SpanKind::ArrayTableClose in build_index\n@@ -64,17 +64,17 @@\n                             path.push(clean_key(&doc.source, &doc.spans[i]));\n                             i += 1;\n                         }\n                         SpanKind::Dot => { i += 1; }\n                         SpanKind::ArrayClose => {\n                             if !is_aot { current_table = path; }\n                             i += 1; break;\n                         }\n-                        SpanKind::ArrayTableClose => { i += 1; break; }\n+                         /* ~ changed by cargo-mutants ~ */\n                         _ => { i += 1; break; }\n                     }\n                 }\n                 continue;\n             }\n \n             SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                 let mut key_parts: Vec<&str> = Vec::with_capacity(4);\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "MatchArm",
+    "name": "crates/tomlini/src/edit.rs:72:25: delete match arm SpanKind::ArrayTableClose in build_index",
+    "package": "tomlini",
+    "replacement": "",
+    "span": {
+      "end": {
+        "column": 72,
+        "line": 72
+      },
+      "start": {
+        "column": 25,
+        "line": 72
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace += with -= in build_index\n@@ -57,17 +57,17 @@\n             SpanKind::ArrayOpen | SpanKind::ArrayTableOpen => {\n                 let is_aot = span.kind == SpanKind::ArrayTableOpen;\n                 let mut path: Vec<&str> = Vec::with_capacity(4);\n                 i += 1;\n                 while i < doc.spans.len() {\n                     match doc.spans[i].kind {\n                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                             path.push(clean_key(&doc.source, &doc.spans[i]));\n-                            i += 1;\n+                            i -= /* ~ changed by cargo-mutants ~ */ 1;\n                         }\n                         SpanKind::Dot => { i += 1; }\n                         SpanKind::ArrayClose => {\n                             if !is_aot { current_table = path; }\n                             i += 1; break;\n                         }\n                         SpanKind::ArrayTableClose => { i += 1; break; }\n                         _ => { i += 1; break; }\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:65:31: replace += with -= in build_index",
+    "package": "tomlini",
+    "replacement": "-=",
+    "span": {
+      "end": {
+        "column": 33,
+        "line": 65
+      },
+      "start": {
+        "column": 31,
+        "line": 65
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace += with *= in build_index\n@@ -57,17 +57,17 @@\n             SpanKind::ArrayOpen | SpanKind::ArrayTableOpen => {\n                 let is_aot = span.kind == SpanKind::ArrayTableOpen;\n                 let mut path: Vec<&str> = Vec::with_capacity(4);\n                 i += 1;\n                 while i < doc.spans.len() {\n                     match doc.spans[i].kind {\n                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                             path.push(clean_key(&doc.source, &doc.spans[i]));\n-                            i += 1;\n+                            i *= /* ~ changed by cargo-mutants ~ */ 1;\n                         }\n                         SpanKind::Dot => { i += 1; }\n                         SpanKind::ArrayClose => {\n                             if !is_aot { current_table = path; }\n                             i += 1; break;\n                         }\n                         SpanKind::ArrayTableClose => { i += 1; break; }\n                         _ => { i += 1; break; }\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:65:31: replace += with *= in build_index",
+    "package": "tomlini",
+    "replacement": "*=",
+    "span": {
+      "end": {
+        "column": 33,
+        "line": 65
+      },
+      "start": {
+        "column": 31,
+        "line": 65
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace += with -= in build_index\n@@ -59,17 +59,17 @@\n                 let mut path: Vec<&str> = Vec::with_capacity(4);\n                 i += 1;\n                 while i < doc.spans.len() {\n                     match doc.spans[i].kind {\n                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                             path.push(clean_key(&doc.source, &doc.spans[i]));\n                             i += 1;\n                         }\n-                        SpanKind::Dot => { i += 1; }\n+                        SpanKind::Dot => { i -= /* ~ changed by cargo-mutants ~ */ 1; }\n                         SpanKind::ArrayClose => {\n                             if !is_aot { current_table = path; }\n                             i += 1; break;\n                         }\n                         SpanKind::ArrayTableClose => { i += 1; break; }\n                         _ => { i += 1; break; }\n                     }\n                 }\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:67:46: replace += with -= in build_index",
+    "package": "tomlini",
+    "replacement": "-=",
+    "span": {
+      "end": {
+        "column": 48,
+        "line": 67
+      },
+      "start": {
+        "column": 46,
+        "line": 67
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace += with *= in build_index\n@@ -59,17 +59,17 @@\n                 let mut path: Vec<&str> = Vec::with_capacity(4);\n                 i += 1;\n                 while i < doc.spans.len() {\n                     match doc.spans[i].kind {\n                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                             path.push(clean_key(&doc.source, &doc.spans[i]));\n                             i += 1;\n                         }\n-                        SpanKind::Dot => { i += 1; }\n+                        SpanKind::Dot => { i *= /* ~ changed by cargo-mutants ~ */ 1; }\n                         SpanKind::ArrayClose => {\n                             if !is_aot { current_table = path; }\n                             i += 1; break;\n                         }\n                         SpanKind::ArrayTableClose => { i += 1; break; }\n                         _ => { i += 1; break; }\n                     }\n                 }\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:67:46: replace += with *= in build_index",
+    "package": "tomlini",
+    "replacement": "*=",
+    "span": {
+      "end": {
+        "column": 48,
+        "line": 67
+      },
+      "start": {
+        "column": 46,
+        "line": 67
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ delete ! in build_index\n@@ -61,17 +61,17 @@\n                 while i < doc.spans.len() {\n                     match doc.spans[i].kind {\n                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                             path.push(clean_key(&doc.source, &doc.spans[i]));\n                             i += 1;\n                         }\n                         SpanKind::Dot => { i += 1; }\n                         SpanKind::ArrayClose => {\n-                            if !is_aot { current_table = path; }\n+                            if  /* ~ changed by cargo-mutants ~ */is_aot { current_table = path; }\n                             i += 1; break;\n                         }\n                         SpanKind::ArrayTableClose => { i += 1; break; }\n                         _ => { i += 1; break; }\n                     }\n                 }\n                 continue;\n             }\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "UnaryOperator",
+    "name": "crates/tomlini/src/edit.rs:69:32: delete ! in build_index",
+    "package": "tomlini",
+    "replacement": "",
+    "span": {
+      "end": {
+        "column": 33,
+        "line": 69
+      },
+      "start": {
+        "column": 32,
+        "line": 69
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace += with -= in build_index\n@@ -62,17 +62,17 @@\n                     match doc.spans[i].kind {\n                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                             path.push(clean_key(&doc.source, &doc.spans[i]));\n                             i += 1;\n                         }\n                         SpanKind::Dot => { i += 1; }\n                         SpanKind::ArrayClose => {\n                             if !is_aot { current_table = path; }\n-                            i += 1; break;\n+                            i -= /* ~ changed by cargo-mutants ~ */ 1; break;\n                         }\n                         SpanKind::ArrayTableClose => { i += 1; break; }\n                         _ => { i += 1; break; }\n                     }\n                 }\n                 continue;\n             }\n \n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:70:31: replace += with -= in build_index",
+    "package": "tomlini",
+    "replacement": "-=",
+    "span": {
+      "end": {
+        "column": 33,
+        "line": 70
+      },
+      "start": {
+        "column": 31,
+        "line": 70
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace += with *= in build_index\n@@ -62,17 +62,17 @@\n                     match doc.spans[i].kind {\n                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                             path.push(clean_key(&doc.source, &doc.spans[i]));\n                             i += 1;\n                         }\n                         SpanKind::Dot => { i += 1; }\n                         SpanKind::ArrayClose => {\n                             if !is_aot { current_table = path; }\n-                            i += 1; break;\n+                            i *= /* ~ changed by cargo-mutants ~ */ 1; break;\n                         }\n                         SpanKind::ArrayTableClose => { i += 1; break; }\n                         _ => { i += 1; break; }\n                     }\n                 }\n                 continue;\n             }\n \n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:70:31: replace += with *= in build_index",
+    "package": "tomlini",
+    "replacement": "*=",
+    "span": {
+      "end": {
+        "column": 33,
+        "line": 70
+      },
+      "start": {
+        "column": 31,
+        "line": 70
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace += with -= in build_index\n@@ -64,17 +64,17 @@\n                             path.push(clean_key(&doc.source, &doc.spans[i]));\n                             i += 1;\n                         }\n                         SpanKind::Dot => { i += 1; }\n                         SpanKind::ArrayClose => {\n                             if !is_aot { current_table = path; }\n                             i += 1; break;\n                         }\n-                        SpanKind::ArrayTableClose => { i += 1; break; }\n+                        SpanKind::ArrayTableClose => { i -= /* ~ changed by cargo-mutants ~ */ 1; break; }\n                         _ => { i += 1; break; }\n                     }\n                 }\n                 continue;\n             }\n \n             SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                 let mut key_parts: Vec<&str> = Vec::with_capacity(4);\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:72:58: replace += with -= in build_index",
+    "package": "tomlini",
+    "replacement": "-=",
+    "span": {
+      "end": {
+        "column": 60,
+        "line": 72
+      },
+      "start": {
+        "column": 58,
+        "line": 72
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace += with *= in build_index\n@@ -64,17 +64,17 @@\n                             path.push(clean_key(&doc.source, &doc.spans[i]));\n                             i += 1;\n                         }\n                         SpanKind::Dot => { i += 1; }\n                         SpanKind::ArrayClose => {\n                             if !is_aot { current_table = path; }\n                             i += 1; break;\n                         }\n-                        SpanKind::ArrayTableClose => { i += 1; break; }\n+                        SpanKind::ArrayTableClose => { i *= /* ~ changed by cargo-mutants ~ */ 1; break; }\n                         _ => { i += 1; break; }\n                     }\n                 }\n                 continue;\n             }\n \n             SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                 let mut key_parts: Vec<&str> = Vec::with_capacity(4);\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:72:58: replace += with *= in build_index",
+    "package": "tomlini",
+    "replacement": "*=",
+    "span": {
+      "end": {
+        "column": 60,
+        "line": 72
+      },
+      "start": {
+        "column": 58,
+        "line": 72
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace += with -= in build_index\n@@ -65,17 +65,17 @@\n                             i += 1;\n                         }\n                         SpanKind::Dot => { i += 1; }\n                         SpanKind::ArrayClose => {\n                             if !is_aot { current_table = path; }\n                             i += 1; break;\n                         }\n                         SpanKind::ArrayTableClose => { i += 1; break; }\n-                        _ => { i += 1; break; }\n+                        _ => { i -= /* ~ changed by cargo-mutants ~ */ 1; break; }\n                     }\n                 }\n                 continue;\n             }\n \n             SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                 let mut key_parts: Vec<&str> = Vec::with_capacity(4);\n                 key_parts.push(clean_key(&doc.source, &span));\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:73:34: replace += with -= in build_index",
+    "package": "tomlini",
+    "replacement": "-=",
+    "span": {
+      "end": {
+        "column": 36,
+        "line": 73
+      },
+      "start": {
+        "column": 34,
+        "line": 73
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace += with *= in build_index\n@@ -65,17 +65,17 @@\n                             i += 1;\n                         }\n                         SpanKind::Dot => { i += 1; }\n                         SpanKind::ArrayClose => {\n                             if !is_aot { current_table = path; }\n                             i += 1; break;\n                         }\n                         SpanKind::ArrayTableClose => { i += 1; break; }\n-                        _ => { i += 1; break; }\n+                        _ => { i *= /* ~ changed by cargo-mutants ~ */ 1; break; }\n                     }\n                 }\n                 continue;\n             }\n \n             SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                 let mut key_parts: Vec<&str> = Vec::with_capacity(4);\n                 key_parts.push(clean_key(&doc.source, &span));\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:73:34: replace += with *= in build_index",
+    "package": "tomlini",
+    "replacement": "*=",
+    "span": {
+      "end": {
+        "column": 36,
+        "line": 73
+      },
+      "start": {
+        "column": 34,
+        "line": 73
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace + with - in build_index\n@@ -75,17 +75,17 @@\n                 }\n                 continue;\n             }\n \n             SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                 let mut key_parts: Vec<&str> = Vec::with_capacity(4);\n                 key_parts.push(clean_key(&doc.source, &span));\n                 let key_start = i;\n-                let mut j = i + 1;\n+                let mut j = i - /* ~ changed by cargo-mutants ~ */ 1;\n \n                 loop {\n                     if j >= doc.spans.len() { break; }\n                     match doc.spans[j].kind {\n                         SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { j += 1; }\n                         SpanKind::Dot => { j += 1; }\n                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                             key_parts.push(clean_key(&doc.source, &doc.spans[j]));\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:83:31: replace + with - in build_index",
+    "package": "tomlini",
+    "replacement": "-",
+    "span": {
+      "end": {
+        "column": 32,
+        "line": 83
+      },
+      "start": {
+        "column": 31,
+        "line": 83
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace + with * in build_index\n@@ -75,17 +75,17 @@\n                 }\n                 continue;\n             }\n \n             SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                 let mut key_parts: Vec<&str> = Vec::with_capacity(4);\n                 key_parts.push(clean_key(&doc.source, &span));\n                 let key_start = i;\n-                let mut j = i + 1;\n+                let mut j = i * /* ~ changed by cargo-mutants ~ */ 1;\n \n                 loop {\n                     if j >= doc.spans.len() { break; }\n                     match doc.spans[j].kind {\n                         SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { j += 1; }\n                         SpanKind::Dot => { j += 1; }\n                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                             key_parts.push(clean_key(&doc.source, &doc.spans[j]));\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:83:31: replace + with * in build_index",
+    "package": "tomlini",
+    "replacement": "*",
+    "span": {
+      "end": {
+        "column": 32,
+        "line": 83
+      },
+      "start": {
+        "column": 31,
+        "line": 83
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace >= with < in build_index\n@@ -78,17 +78,17 @@\n \n             SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                 let mut key_parts: Vec<&str> = Vec::with_capacity(4);\n                 key_parts.push(clean_key(&doc.source, &span));\n                 let key_start = i;\n                 let mut j = i + 1;\n \n                 loop {\n-                    if j >= doc.spans.len() { break; }\n+                    if j < /* ~ changed by cargo-mutants ~ */ doc.spans.len() { break; }\n                     match doc.spans[j].kind {\n                         SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { j += 1; }\n                         SpanKind::Dot => { j += 1; }\n                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                             key_parts.push(clean_key(&doc.source, &doc.spans[j]));\n                             j += 1;\n                         }\n                         SpanKind::Equals => {\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:86:26: replace >= with < in build_index",
+    "package": "tomlini",
+    "replacement": "<",
+    "span": {
+      "end": {
+        "column": 28,
+        "line": 86
+      },
+      "start": {
+        "column": 26,
+        "line": 86
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ delete match arm SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment in build_index\n@@ -80,17 +80,17 @@\n                 let mut key_parts: Vec<&str> = Vec::with_capacity(4);\n                 key_parts.push(clean_key(&doc.source, &span));\n                 let key_start = i;\n                 let mut j = i + 1;\n \n                 loop {\n                     if j >= doc.spans.len() { break; }\n                     match doc.spans[j].kind {\n-                        SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { j += 1; }\n+                         /* ~ changed by cargo-mutants ~ */\n                         SpanKind::Dot => { j += 1; }\n                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                             key_parts.push(clean_key(&doc.source, &doc.spans[j]));\n                             j += 1;\n                         }\n                         SpanKind::Equals => {\n                             j += 1;\n                             let mut k = j;\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "MatchArm",
+    "name": "crates/tomlini/src/edit.rs:88:25: delete match arm SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment in build_index",
+    "package": "tomlini",
+    "replacement": "",
+    "span": {
+      "end": {
+        "column": 100,
+        "line": 88
+      },
+      "start": {
+        "column": 25,
+        "line": 88
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ delete match arm SpanKind::Dot in build_index\n@@ -81,17 +81,17 @@\n                 key_parts.push(clean_key(&doc.source, &span));\n                 let key_start = i;\n                 let mut j = i + 1;\n \n                 loop {\n                     if j >= doc.spans.len() { break; }\n                     match doc.spans[j].kind {\n                         SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { j += 1; }\n-                        SpanKind::Dot => { j += 1; }\n+                         /* ~ changed by cargo-mutants ~ */\n                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                             key_parts.push(clean_key(&doc.source, &doc.spans[j]));\n                             j += 1;\n                         }\n                         SpanKind::Equals => {\n                             j += 1;\n                             let mut k = j;\n                             while k < doc.spans.len() {\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "MatchArm",
+    "name": "crates/tomlini/src/edit.rs:89:25: delete match arm SpanKind::Dot in build_index",
+    "package": "tomlini",
+    "replacement": "",
+    "span": {
+      "end": {
+        "column": 53,
+        "line": 89
+      },
+      "start": {
+        "column": 25,
+        "line": 89
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ delete match arm SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString in build_index\n@@ -82,20 +82,17 @@\n                 let key_start = i;\n                 let mut j = i + 1;\n \n                 loop {\n                     if j >= doc.spans.len() { break; }\n                     match doc.spans[j].kind {\n                         SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { j += 1; }\n                         SpanKind::Dot => { j += 1; }\n-                        SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n-                            key_parts.push(clean_key(&doc.source, &doc.spans[j]));\n-                            j += 1;\n-                        }\n+                         /* ~ changed by cargo-mutants ~ */\n                         SpanKind::Equals => {\n                             j += 1;\n                             let mut k = j;\n                             while k < doc.spans.len() {\n                                 if is_value_kind(doc.spans[k].kind) {\n                                     let path: Vec<String> = current_table.iter()\n                                         .chain(&key_parts)\n                                         .map(|s| s.to_string())\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "MatchArm",
+    "name": "crates/tomlini/src/edit.rs:90:25: delete match arm SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString in build_index",
+    "package": "tomlini",
+    "replacement": "",
+    "span": {
+      "end": {
+        "column": 26,
+        "line": 93
+      },
+      "start": {
+        "column": 25,
+        "line": 90
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ delete match arm SpanKind::Equals in build_index\n@@ -86,36 +86,17 @@\n                     if j >= doc.spans.len() { break; }\n                     match doc.spans[j].kind {\n                         SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { j += 1; }\n                         SpanKind::Dot => { j += 1; }\n                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                             key_parts.push(clean_key(&doc.source, &doc.spans[j]));\n                             j += 1;\n                         }\n-                        SpanKind::Equals => {\n-                            j += 1;\n-                            let mut k = j;\n-                            while k < doc.spans.len() {\n-                                if is_value_kind(doc.spans[k].kind) {\n-                                    let path: Vec<String> = current_table.iter()\n-                                        .chain(&key_parts)\n-                                        .map(|s| s.to_string())\n-                                        .collect();\n-                                    index.push((path, Entry { key_start, value_idx: k }));\n-                                    i = k;\n-                                    break;\n-                                }\n-                                match doc.spans[k].kind {\n-                                    SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { k += 1; }\n-                                    _ => { break; }\n-                                }\n-                            }\n-                            break;\n-                        }\n+                         /* ~ changed by cargo-mutants ~ */\n                         _ => { break; }\n                     }\n                 }\n                 i += 1;\n             }\n             _ => { i += 1; }\n         }\n     }\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "MatchArm",
+    "name": "crates/tomlini/src/edit.rs:94:25: delete match arm SpanKind::Equals in build_index",
+    "package": "tomlini",
+    "replacement": "",
+    "span": {
+      "end": {
+        "column": 26,
+        "line": 113
+      },
+      "start": {
+        "column": 25,
+        "line": 94
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace += with -= in build_index\n@@ -80,17 +80,17 @@\n                 let mut key_parts: Vec<&str> = Vec::with_capacity(4);\n                 key_parts.push(clean_key(&doc.source, &span));\n                 let key_start = i;\n                 let mut j = i + 1;\n \n                 loop {\n                     if j >= doc.spans.len() { break; }\n                     match doc.spans[j].kind {\n-                        SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { j += 1; }\n+                        SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { j -= /* ~ changed by cargo-mutants ~ */ 1; }\n                         SpanKind::Dot => { j += 1; }\n                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                             key_parts.push(clean_key(&doc.source, &doc.spans[j]));\n                             j += 1;\n                         }\n                         SpanKind::Equals => {\n                             j += 1;\n                             let mut k = j;\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:88:93: replace += with -= in build_index",
+    "package": "tomlini",
+    "replacement": "-=",
+    "span": {
+      "end": {
+        "column": 95,
+        "line": 88
+      },
+      "start": {
+        "column": 93,
+        "line": 88
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace += with *= in build_index\n@@ -80,17 +80,17 @@\n                 let mut key_parts: Vec<&str> = Vec::with_capacity(4);\n                 key_parts.push(clean_key(&doc.source, &span));\n                 let key_start = i;\n                 let mut j = i + 1;\n \n                 loop {\n                     if j >= doc.spans.len() { break; }\n                     match doc.spans[j].kind {\n-                        SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { j += 1; }\n+                        SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { j *= /* ~ changed by cargo-mutants ~ */ 1; }\n                         SpanKind::Dot => { j += 1; }\n                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                             key_parts.push(clean_key(&doc.source, &doc.spans[j]));\n                             j += 1;\n                         }\n                         SpanKind::Equals => {\n                             j += 1;\n                             let mut k = j;\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:88:93: replace += with *= in build_index",
+    "package": "tomlini",
+    "replacement": "*=",
+    "span": {
+      "end": {
+        "column": 95,
+        "line": 88
+      },
+      "start": {
+        "column": 93,
+        "line": 88
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace += with -= in build_index\n@@ -81,17 +81,17 @@\n                 key_parts.push(clean_key(&doc.source, &span));\n                 let key_start = i;\n                 let mut j = i + 1;\n \n                 loop {\n                     if j >= doc.spans.len() { break; }\n                     match doc.spans[j].kind {\n                         SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { j += 1; }\n-                        SpanKind::Dot => { j += 1; }\n+                        SpanKind::Dot => { j -= /* ~ changed by cargo-mutants ~ */ 1; }\n                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                             key_parts.push(clean_key(&doc.source, &doc.spans[j]));\n                             j += 1;\n                         }\n                         SpanKind::Equals => {\n                             j += 1;\n                             let mut k = j;\n                             while k < doc.spans.len() {\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:89:46: replace += with -= in build_index",
+    "package": "tomlini",
+    "replacement": "-=",
+    "span": {
+      "end": {
+        "column": 48,
+        "line": 89
+      },
+      "start": {
+        "column": 46,
+        "line": 89
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace += with *= in build_index\n@@ -81,17 +81,17 @@\n                 key_parts.push(clean_key(&doc.source, &span));\n                 let key_start = i;\n                 let mut j = i + 1;\n \n                 loop {\n                     if j >= doc.spans.len() { break; }\n                     match doc.spans[j].kind {\n                         SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { j += 1; }\n-                        SpanKind::Dot => { j += 1; }\n+                        SpanKind::Dot => { j *= /* ~ changed by cargo-mutants ~ */ 1; }\n                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                             key_parts.push(clean_key(&doc.source, &doc.spans[j]));\n                             j += 1;\n                         }\n                         SpanKind::Equals => {\n                             j += 1;\n                             let mut k = j;\n                             while k < doc.spans.len() {\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:89:46: replace += with *= in build_index",
+    "package": "tomlini",
+    "replacement": "*=",
+    "span": {
+      "end": {
+        "column": 48,
+        "line": 89
+      },
+      "start": {
+        "column": 46,
+        "line": 89
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace += with -= in build_index\n@@ -84,17 +84,17 @@\n \n                 loop {\n                     if j >= doc.spans.len() { break; }\n                     match doc.spans[j].kind {\n                         SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { j += 1; }\n                         SpanKind::Dot => { j += 1; }\n                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                             key_parts.push(clean_key(&doc.source, &doc.spans[j]));\n-                            j += 1;\n+                            j -= /* ~ changed by cargo-mutants ~ */ 1;\n                         }\n                         SpanKind::Equals => {\n                             j += 1;\n                             let mut k = j;\n                             while k < doc.spans.len() {\n                                 if is_value_kind(doc.spans[k].kind) {\n                                     let path: Vec<String> = current_table.iter()\n                                         .chain(&key_parts)\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:92:31: replace += with -= in build_index",
+    "package": "tomlini",
+    "replacement": "-=",
+    "span": {
+      "end": {
+        "column": 33,
+        "line": 92
+      },
+      "start": {
+        "column": 31,
+        "line": 92
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace += with *= in build_index\n@@ -84,17 +84,17 @@\n \n                 loop {\n                     if j >= doc.spans.len() { break; }\n                     match doc.spans[j].kind {\n                         SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { j += 1; }\n                         SpanKind::Dot => { j += 1; }\n                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                             key_parts.push(clean_key(&doc.source, &doc.spans[j]));\n-                            j += 1;\n+                            j *= /* ~ changed by cargo-mutants ~ */ 1;\n                         }\n                         SpanKind::Equals => {\n                             j += 1;\n                             let mut k = j;\n                             while k < doc.spans.len() {\n                                 if is_value_kind(doc.spans[k].kind) {\n                                     let path: Vec<String> = current_table.iter()\n                                         .chain(&key_parts)\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:92:31: replace += with *= in build_index",
+    "package": "tomlini",
+    "replacement": "*=",
+    "span": {
+      "end": {
+        "column": 33,
+        "line": 92
+      },
+      "start": {
+        "column": 31,
+        "line": 92
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace += with -= in build_index\n@@ -87,17 +87,17 @@\n                     match doc.spans[j].kind {\n                         SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { j += 1; }\n                         SpanKind::Dot => { j += 1; }\n                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                             key_parts.push(clean_key(&doc.source, &doc.spans[j]));\n                             j += 1;\n                         }\n                         SpanKind::Equals => {\n-                            j += 1;\n+                            j -= /* ~ changed by cargo-mutants ~ */ 1;\n                             let mut k = j;\n                             while k < doc.spans.len() {\n                                 if is_value_kind(doc.spans[k].kind) {\n                                     let path: Vec<String> = current_table.iter()\n                                         .chain(&key_parts)\n                                         .map(|s| s.to_string())\n                                         .collect();\n                                     index.push((path, Entry { key_start, value_idx: k }));\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:95:31: replace += with -= in build_index",
+    "package": "tomlini",
+    "replacement": "-=",
+    "span": {
+      "end": {
+        "column": 33,
+        "line": 95
+      },
+      "start": {
+        "column": 31,
+        "line": 95
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace += with *= in build_index\n@@ -87,17 +87,17 @@\n                     match doc.spans[j].kind {\n                         SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { j += 1; }\n                         SpanKind::Dot => { j += 1; }\n                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                             key_parts.push(clean_key(&doc.source, &doc.spans[j]));\n                             j += 1;\n                         }\n                         SpanKind::Equals => {\n-                            j += 1;\n+                            j *= /* ~ changed by cargo-mutants ~ */ 1;\n                             let mut k = j;\n                             while k < doc.spans.len() {\n                                 if is_value_kind(doc.spans[k].kind) {\n                                     let path: Vec<String> = current_table.iter()\n                                         .chain(&key_parts)\n                                         .map(|s| s.to_string())\n                                         .collect();\n                                     index.push((path, Entry { key_start, value_idx: k }));\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:95:31: replace += with *= in build_index",
+    "package": "tomlini",
+    "replacement": "*=",
+    "span": {
+      "end": {
+        "column": 33,
+        "line": 95
+      },
+      "start": {
+        "column": 31,
+        "line": 95
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace < with == in build_index\n@@ -89,17 +89,17 @@\n                         SpanKind::Dot => { j += 1; }\n                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                             key_parts.push(clean_key(&doc.source, &doc.spans[j]));\n                             j += 1;\n                         }\n                         SpanKind::Equals => {\n                             j += 1;\n                             let mut k = j;\n-                            while k < doc.spans.len() {\n+                            while k == /* ~ changed by cargo-mutants ~ */ doc.spans.len() {\n                                 if is_value_kind(doc.spans[k].kind) {\n                                     let path: Vec<String> = current_table.iter()\n                                         .chain(&key_parts)\n                                         .map(|s| s.to_string())\n                                         .collect();\n                                     index.push((path, Entry { key_start, value_idx: k }));\n                                     i = k;\n                                     break;\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:97:37: replace < with == in build_index",
+    "package": "tomlini",
+    "replacement": "==",
+    "span": {
+      "end": {
+        "column": 38,
+        "line": 97
+      },
+      "start": {
+        "column": 37,
+        "line": 97
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace < with > in build_index\n@@ -89,17 +89,17 @@\n                         SpanKind::Dot => { j += 1; }\n                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                             key_parts.push(clean_key(&doc.source, &doc.spans[j]));\n                             j += 1;\n                         }\n                         SpanKind::Equals => {\n                             j += 1;\n                             let mut k = j;\n-                            while k < doc.spans.len() {\n+                            while k > /* ~ changed by cargo-mutants ~ */ doc.spans.len() {\n                                 if is_value_kind(doc.spans[k].kind) {\n                                     let path: Vec<String> = current_table.iter()\n                                         .chain(&key_parts)\n                                         .map(|s| s.to_string())\n                                         .collect();\n                                     index.push((path, Entry { key_start, value_idx: k }));\n                                     i = k;\n                                     break;\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:97:37: replace < with > in build_index",
+    "package": "tomlini",
+    "replacement": ">",
+    "span": {
+      "end": {
+        "column": 38,
+        "line": 97
+      },
+      "start": {
+        "column": 37,
+        "line": 97
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace < with <= in build_index\n@@ -89,17 +89,17 @@\n                         SpanKind::Dot => { j += 1; }\n                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {\n                             key_parts.push(clean_key(&doc.source, &doc.spans[j]));\n                             j += 1;\n                         }\n                         SpanKind::Equals => {\n                             j += 1;\n                             let mut k = j;\n-                            while k < doc.spans.len() {\n+                            while k <= /* ~ changed by cargo-mutants ~ */ doc.spans.len() {\n                                 if is_value_kind(doc.spans[k].kind) {\n                                     let path: Vec<String> = current_table.iter()\n                                         .chain(&key_parts)\n                                         .map(|s| s.to_string())\n                                         .collect();\n                                     index.push((path, Entry { key_start, value_idx: k }));\n                                     i = k;\n                                     break;\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:97:37: replace < with <= in build_index",
+    "package": "tomlini",
+    "replacement": "<=",
+    "span": {
+      "end": {
+        "column": 38,
+        "line": 97
+      },
+      "start": {
+        "column": 37,
+        "line": 97
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ delete match arm SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment in build_index\n@@ -100,17 +100,17 @@\n                                         .chain(&key_parts)\n                                         .map(|s| s.to_string())\n                                         .collect();\n                                     index.push((path, Entry { key_start, value_idx: k }));\n                                     i = k;\n                                     break;\n                                 }\n                                 match doc.spans[k].kind {\n-                                    SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { k += 1; }\n+                                     /* ~ changed by cargo-mutants ~ */\n                                     _ => { break; }\n                                 }\n                             }\n                             break;\n                         }\n                         _ => { break; }\n                     }\n                 }\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "MatchArm",
+    "name": "crates/tomlini/src/edit.rs:108:37: delete match arm SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment in build_index",
+    "package": "tomlini",
+    "replacement": "",
+    "span": {
+      "end": {
+        "column": 112,
+        "line": 108
+      },
+      "start": {
+        "column": 37,
+        "line": 108
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace += with -= in build_index\n@@ -100,17 +100,17 @@\n                                         .chain(&key_parts)\n                                         .map(|s| s.to_string())\n                                         .collect();\n                                     index.push((path, Entry { key_start, value_idx: k }));\n                                     i = k;\n                                     break;\n                                 }\n                                 match doc.spans[k].kind {\n-                                    SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { k += 1; }\n+                                    SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { k -= /* ~ changed by cargo-mutants ~ */ 1; }\n                                     _ => { break; }\n                                 }\n                             }\n                             break;\n                         }\n                         _ => { break; }\n                     }\n                 }\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:108:105: replace += with -= in build_index",
+    "package": "tomlini",
+    "replacement": "-=",
+    "span": {
+      "end": {
+        "column": 107,
+        "line": 108
+      },
+      "start": {
+        "column": 105,
+        "line": 108
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace += with *= in build_index\n@@ -100,17 +100,17 @@\n                                         .chain(&key_parts)\n                                         .map(|s| s.to_string())\n                                         .collect();\n                                     index.push((path, Entry { key_start, value_idx: k }));\n                                     i = k;\n                                     break;\n                                 }\n                                 match doc.spans[k].kind {\n-                                    SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { k += 1; }\n+                                    SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { k *= /* ~ changed by cargo-mutants ~ */ 1; }\n                                     _ => { break; }\n                                 }\n                             }\n                             break;\n                         }\n                         _ => { break; }\n                     }\n                 }\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:108:105: replace += with *= in build_index",
+    "package": "tomlini",
+    "replacement": "*=",
+    "span": {
+      "end": {
+        "column": 107,
+        "line": 108
+      },
+      "start": {
+        "column": 105,
+        "line": 108
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace += with -= in build_index\n@@ -109,17 +109,17 @@\n                                     _ => { break; }\n                                 }\n                             }\n                             break;\n                         }\n                         _ => { break; }\n                     }\n                 }\n-                i += 1;\n+                i -= /* ~ changed by cargo-mutants ~ */ 1;\n             }\n             _ => { i += 1; }\n         }\n     }\n \n     index\n }\n \n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:117:19: replace += with -= in build_index",
+    "package": "tomlini",
+    "replacement": "-=",
+    "span": {
+      "end": {
+        "column": 21,
+        "line": 117
+      },
+      "start": {
+        "column": 19,
+        "line": 117
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace += with *= in build_index\n@@ -109,17 +109,17 @@\n                                     _ => { break; }\n                                 }\n                             }\n                             break;\n                         }\n                         _ => { break; }\n                     }\n                 }\n-                i += 1;\n+                i *= /* ~ changed by cargo-mutants ~ */ 1;\n             }\n             _ => { i += 1; }\n         }\n     }\n \n     index\n }\n \n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:117:19: replace += with *= in build_index",
+    "package": "tomlini",
+    "replacement": "*=",
+    "span": {
+      "end": {
+        "column": 21,
+        "line": 117
+      },
+      "start": {
+        "column": 19,
+        "line": 117
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace += with -= in build_index\n@@ -111,17 +111,17 @@\n                             }\n                             break;\n                         }\n                         _ => { break; }\n                     }\n                 }\n                 i += 1;\n             }\n-            _ => { i += 1; }\n+            _ => { i -= /* ~ changed by cargo-mutants ~ */ 1; }\n         }\n     }\n \n     index\n }\n \n pub(crate) fn adjust_spans(spans: &mut [Span], pos: u32, delta: i32) {\n     if delta == 0 { return; }\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:119:22: replace += with -= in build_index",
+    "package": "tomlini",
+    "replacement": "-=",
+    "span": {
+      "end": {
+        "column": 24,
+        "line": 119
+      },
+      "start": {
+        "column": 22,
+        "line": 119
+      }
+    }
+  },
+  {
+    "diff": "--- crates/tomlini/src/edit.rs\n+++ replace += with *= in build_index\n@@ -111,17 +111,17 @@\n                             }\n                             break;\n                         }\n                         _ => { break; }\n                     }\n                 }\n                 i += 1;\n             }\n-            _ => { i += 1; }\n+            _ => { i *= /* ~ changed by cargo-mutants ~ */ 1; }\n         }\n     }\n \n     index\n }\n \n pub(crate) fn adjust_spans(spans: &mut [Span], pos: u32, delta: i32) {\n     if delta == 0 { return; }\n",
+    "file": "crates/tomlini/src/edit.rs",
+    "function": {
+      "function_name": "build_index",
+      "return_type": "-> Vec<(Vec<String>, Entry)>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 124
+        },
+        "start": {
+          "column": 1,
+          "line": 48
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/tomlini/src/edit.rs:119:22: replace += with *= in build_index",
+    "package": "tomlini",
+    "replacement": "*=",
+    "span": {
+      "end": {
+        "column": 24,
+        "line": 119
+      },
+      "start": {
+        "column": 22,
+        "line": 119
+      }
+    }
+  }
+]

@@ -1,0 +1,21 @@
+--- crates/tomlini/src/edit.rs
++++ delete ! in build_index
+@@ -61,17 +61,17 @@
+                 while i < doc.spans.len() {
+                     match doc.spans[i].kind {
+                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {
+                             path.push(clean_key(&doc.source, &doc.spans[i]));
+                             i += 1;
+                         }
+                         SpanKind::Dot => { i += 1; }
+                         SpanKind::ArrayClose => {
+-                            if !is_aot { current_table = path; }
++                            if  /* ~ changed by cargo-mutants ~ */is_aot { current_table = path; }
+                             i += 1; break;
+                         }
+                         SpanKind::ArrayTableClose => { i += 1; break; }
+                         _ => { i += 1; break; }
+                     }
+                 }
+                 continue;
+             }

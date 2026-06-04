@@ -1,0 +1,21 @@
+--- crates/tomlini/src/edit.rs
++++ replace + with - in build_index
+@@ -75,17 +75,17 @@
+                 }
+                 continue;
+             }
+ 
+             SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {
+                 let mut key_parts: Vec<&str> = Vec::with_capacity(4);
+                 key_parts.push(clean_key(&doc.source, &span));
+                 let key_start = i;
+-                let mut j = i + 1;
++                let mut j = i - /* ~ changed by cargo-mutants ~ */ 1;
+ 
+                 loop {
+                     if j >= doc.spans.len() { break; }
+                     match doc.spans[j].kind {
+                         SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { j += 1; }
+                         SpanKind::Dot => { j += 1; }
+                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {
+                             key_parts.push(clean_key(&doc.source, &doc.spans[j]));

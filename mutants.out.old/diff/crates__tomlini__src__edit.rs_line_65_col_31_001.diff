@@ -1,0 +1,21 @@
+--- crates/tomlini/src/edit.rs
++++ replace += with *= in build_index
+@@ -57,17 +57,17 @@
+             SpanKind::ArrayOpen | SpanKind::ArrayTableOpen => {
+                 let is_aot = span.kind == SpanKind::ArrayTableOpen;
+                 let mut path: Vec<&str> = Vec::with_capacity(4);
+                 i += 1;
+                 while i < doc.spans.len() {
+                     match doc.spans[i].kind {
+                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {
+                             path.push(clean_key(&doc.source, &doc.spans[i]));
+-                            i += 1;
++                            i *= /* ~ changed by cargo-mutants ~ */ 1;
+                         }
+                         SpanKind::Dot => { i += 1; }
+                         SpanKind::ArrayClose => {
+                             if !is_aot { current_table = path; }
+                             i += 1; break;
+                         }
+                         SpanKind::ArrayTableClose => { i += 1; break; }
+                         _ => { i += 1; break; }

@@ -1,0 +1,41 @@
+--- crates/tomlini/src/edit.rs
++++ delete match arm SpanKind::ArrayOpen | SpanKind::ArrayTableOpen in build_index
+@@ -49,37 +49,17 @@
+     let mut index = Vec::with_capacity(doc.spans.len() / 8);
+     let mut current_table: Vec<&str> = Vec::new();
+     let mut i = 0;
+ 
+     while i < doc.spans.len() {
+         let span = doc.spans[i];
+ 
+         match span.kind {
+-            SpanKind::ArrayOpen | SpanKind::ArrayTableOpen => {
+-                let is_aot = span.kind == SpanKind::ArrayTableOpen;
+-                let mut path: Vec<&str> = Vec::with_capacity(4);
+-                i += 1;
+-                while i < doc.spans.len() {
+-                    match doc.spans[i].kind {
+-                        SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {
+-                            path.push(clean_key(&doc.source, &doc.spans[i]));
+-                            i += 1;
+-                        }
+-                        SpanKind::Dot => { i += 1; }
+-                        SpanKind::ArrayClose => {
+-                            if !is_aot { current_table = path; }
+-                            i += 1; break;
+-                        }
+-                        SpanKind::ArrayTableClose => { i += 1; break; }
+-                        _ => { i += 1; break; }
+-                    }
+-                }
+-                continue;
+-            }
++             /* ~ changed by cargo-mutants ~ */
+ 
+             SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {
+                 let mut key_parts: Vec<&str> = Vec::with_capacity(4);
+                 key_parts.push(clean_key(&doc.source, &span));
+                 let key_start = i;
+                 let mut j = i + 1;
+ 
+                 loop {

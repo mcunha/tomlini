@@ -1,0 +1,3 @@
+crates/tomlini/src/edit.rs:49:5: replace build_index -> Vec<(Vec<String>, Entry)> with vec![(vec![], Default::default())]
+crates/tomlini/src/edit.rs:49:5: replace build_index -> Vec<(Vec<String>, Entry)> with vec![(vec![String::new()], Default::default())]
+crates/tomlini/src/edit.rs:49:5: replace build_index -> Vec<(Vec<String>, Entry)> with vec![(vec!["xyzzy".into()], Default::default())]
