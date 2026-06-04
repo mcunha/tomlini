@@ -1154,14 +1154,23 @@ impl Editor {
                     let mut line_end = value_span.end as usize;
                     while line_end < doc.source.len() && doc.source.as_bytes()[line_end] != b'\n' { line_end += 1; }
                     if line_end < doc.source.len() { line_end += 1; }
-                    let line_text = doc.source[line_start..line_end].to_string();
+                    let mut line_end = value_span.end as usize;
+                    while line_end < doc.source.len() && doc.source.as_bytes()[line_end] != b'\n' { line_end += 1; }
+                    if line_end < doc.source.len() { line_end += 1; }
 
+                    // Extend boundaries based on BringAlong flags
+                    let bring = op.suffix.as_deref()
+                        .and_then(|s| s.parse::<u8>().ok())
+                        .map(BringAlong)
+                        .unwrap_or(BringAlong::NOTHING);
+                    apply_bring(&doc.source, &mut line_start, &mut line_end, bring);
+
+                    let line_text = doc.source[line_start..line_end].to_string();
                     let to_table_refs: Vec<&str> = op.to_table.iter().map(|s| s.as_str()).collect();
                     let entries_in_target: Vec<_> = index.iter()
                         .filter(|(p, _)| p.len() == op.to_table.len() + 1
                             && path_eq(&p[..op.to_table.len()], &to_table_refs))
                         .collect();
-
                     let insert_pos = if let Some((_, last)) = entries_in_target.last() {
                         let last_val_span = doc.spans[last.value_idx];
                         let mut end = last_val_span.end as usize;
@@ -1200,8 +1209,15 @@ impl Editor {
                     let mut line_end = value_span.end as usize;
                     while line_end < doc.source.len() && doc.source.as_bytes()[line_end] != b'\n' { line_end += 1; }
                     if line_end < doc.source.len() { line_end += 1; }
-                    let line_text = doc.source[line_start..line_end].to_string();
 
+                    // Extend boundaries based on BringAlong flags
+                    let bring = op.suffix.as_deref()
+                        .and_then(|s| s.parse::<u8>().ok())
+                        .map(BringAlong)
+                        .unwrap_or(BringAlong::NOTHING);
+                    apply_bring(&doc.source, &mut line_start, &mut line_end, bring);
+
+                    let line_text = doc.source[line_start..line_end].to_string();
                     // Insert at root: after the last root-level scalar, or at EOF if
                     // there are no root scalars.  Must go BEFORE any [table] headers
                     // to avoid re-absorption by the TOML spec parser.
@@ -1243,8 +1259,11 @@ impl Editor {
                         let mut line_end = value_span.end as usize;
                         while line_end < doc.source.len() && doc.source.as_bytes()[line_end] != b'\n' { line_end += 1; }
                         if line_end < doc.source.len() { line_end += 1; }
+                        let bring = op.suffix.as_deref()
+                            .and_then(|s| s.parse::<u8>().ok())
+                            .map(BringAlong).unwrap_or(BringAlong::NOTHING);
+                        apply_bring(&doc.source, &mut line_start, &mut line_end, bring);
                         let line_text = doc.source[line_start..line_end].to_string();
-
                         let entries_in_target: Vec<_> = index.iter()
                             .filter(|(p, _)| p.len() == op.to_table.len() + 1
                                 && path_eq(&p[..op.to_table.len()], &to_table_refs))
@@ -1284,8 +1303,11 @@ impl Editor {
                         let mut line_end = value_span.end as usize;
                         while line_end < doc.source.len() && doc.source.as_bytes()[line_end] != b'\n' { line_end += 1; }
                         if line_end < doc.source.len() { line_end += 1; }
+                        let bring = op.suffix.as_deref()
+                            .and_then(|s| s.parse::<u8>().ok())
+                            .map(BringAlong).unwrap_or(BringAlong::NOTHING);
+                        apply_bring(&doc.source, &mut line_start, &mut line_end, bring);
                         let line_text = doc.source[line_start..line_end].to_string();
-
                         // 2. Create new section header at end of document
                         let insert_pos = doc.source.len() as u32;
                         let sep = detect_blank_line_sep(&doc.spans, &doc.source);
@@ -1732,6 +1754,29 @@ impl Editor {
         self
     }
 
+    /// Move a key from one section to another, bringing adjacent comments.
+    ///
+    /// Like [`move_key`](Editor::move_key), but also carries the text
+    /// specified by `bring`.  Pass `BringAlong::NOTHING` for the default,
+    /// or combine flags:
+    ///
+    /// ```ignore
+    /// doc.edit().move_key_bring("a.k", "b.k", BringAlong::COMMENTS_ABOVE).commit()?;
+    /// ```
+    pub fn move_key_bring(&mut self, from: &str, to: &str, bring: BringAlong) -> &mut Self {
+        let (from_table, from_key) = split_path(from);
+        let (to_table, to_key) = split_path(to);
+        let tag = if bring.is_empty() { None } else { Some((bring.0).to_string()) };
+        self.ops.push(Op {
+            kind: OpKind::MoveKey, table: from_table, key: from_key, value: String::new(),
+            prefix: None, suffix: tag,
+            to_table, to_key,
+            pairs: Vec::new(),
+            index: None, inline_key: None,
+        });
+        self
+    }
+
     ///
     /// Promote a key from a sub-table to the document root.
     ///
@@ -1777,6 +1822,28 @@ impl Editor {
         self
     }
 
+    /// Promote a key to root, bringing adjacent comments.
+    ///
+    /// Like [`promote_key`](Editor::promote_key), but also carries the text
+    /// specified by `bring`.
+    ///
+    /// ```ignore
+    /// doc.edit().promote_key_bring("meta.base", BringAlong::COMMENTS_ABOVE).commit()?;
+    /// ```
+    pub fn promote_key_bring(&mut self, from: &str, bring: BringAlong) -> &mut Self {
+        let (from_table, from_key) = split_path(from);
+        assert!(!from_table.is_empty(), "promote_key requires a dotted path");
+        let tag = if bring.is_empty() { None } else { Some((bring.0).to_string()) };
+        self.ops.push(Op {
+            kind: OpKind::PromoteKey, table: from_table, key: from_key, value: String::new(),
+            prefix: None, suffix: tag,
+            to_table: Vec::new(), to_key: String::new(),
+            pairs: Vec::new(),
+            index: None, inline_key: None,
+        });
+        self
+    }
+
     ///
     /// Move a key from one section to another, auto-creating the
     /// destination table if it does not already exist.
@@ -1813,8 +1880,31 @@ impl Editor {
         });
         self
     }
+
+    /// Move a key to another section (auto-creating if needed), bringing comments.
+    ///
+    /// Like [`move_key_create`](Editor::move_key_create), but also carries
+    /// adjacent text specified by `bring`.
+    ///
+    /// ```ignore
+    /// doc.edit().move_key_create_bring("a.k", "b.k", BringAlong::COMMENTS_ABOVE).commit()?;
+    /// ```
+    pub fn move_key_create_bring(&mut self, from: &str, to: &str, bring: BringAlong) -> &mut Self {
+        let (from_table, from_key) = split_path(from);
+        let (to_table, to_key) = split_path(to);
+        let tag = if bring.is_empty() { None } else { Some((bring.0).to_string()) };
+        self.ops.push(Op {
+            kind: OpKind::MoveKeyCreate, table: from_table, key: from_key, value: String::new(),
+            prefix: None, suffix: tag,
+            to_table, to_key,
+            pairs: Vec::new(),
+            index: None, inline_key: None,
+        });
+        self
+    }
 }
 
+// ============================================================
 // ============================================================
 // Commit helpers
 // ============================================================
@@ -1866,7 +1956,57 @@ fn find_next_section_start(spans: &[Span], after_idx: usize) -> Option<u32> {
     None
 }
 
-/// Detect the blank-line convention used between sections.
+/// Extend line boundaries based on [`BringAlong`] flags.
+///
+/// - `COMMENTS_ABOVE` / `EVERYTHING_ABOVE`: extend `start` backward
+///   to include comment lines (and blank lines for `EVERYTHING_*`).
+/// - `COMMENTS_BELOW` / `EVERYTHING_BELOW`: extend `end` forward
+///   to include comment lines (and blank lines for `EVERYTHING_*`).
+fn apply_bring(source: &str, start: &mut usize, end: &mut usize, bring: BringAlong) {
+    // ---- extend start backward ----
+    if bring.contains(BringAlong::COMMENTS_ABOVE) || bring.contains(BringAlong::EVERYTHING_ABOVE) {
+        let stop_at_blank = !bring.contains(BringAlong::EVERYTHING_ABOVE);
+        let mut pos = *start;
+        if pos > 0 { pos -= 1; }
+        while pos > 0 && source.as_bytes()[pos] != b'\n' { pos -= 1; }
+        let mut scan = pos;
+        while scan > 0 {
+            let line_end = scan;
+            scan -= 1;
+            while scan > 0 && source.as_bytes()[scan - 1] != b'\n' { scan -= 1; }
+            let line = &source[scan..line_end];
+            if line.trim_start().starts_with('#') {
+                *start = scan;
+            } else if stop_at_blank && line.trim().is_empty() {
+                break;
+            } else {
+                break;
+            }
+        }
+    }
+
+    // ---- extend end forward ----
+    if bring.contains(BringAlong::COMMENTS_BELOW) || bring.contains(BringAlong::EVERYTHING_BELOW) {
+        let stop_at_blank = !bring.contains(BringAlong::EVERYTHING_BELOW);
+        let mut pos = *end;
+        while pos < source.len() && source.as_bytes()[pos] != b'\n' { pos += 1; }
+        if pos < source.len() { pos += 1; } // skip past the \n
+        let mut scan = pos;
+        while scan < source.len() {
+            let line_start = scan;
+            while scan < source.len() && source.as_bytes()[scan] != b'\n' { scan += 1; }
+            let line = &source[line_start..scan];
+            if line.trim_start().starts_with('#') {
+                if scan < source.len() { scan += 1; } // include \n
+                *end = scan;
+            } else if stop_at_blank && line.trim().is_empty() {
+                break;
+            } else {
+                break;
+            }
+        }
+    }
+}
 /// Returns `"\n\n"` if any section is preceded by a blank line,
 /// otherwise `"\n"`.
 fn detect_blank_line_sep(spans: &[Span], source: &str) -> &'static str {
@@ -2067,6 +2207,15 @@ impl<'a> EditorHandle<'a> {
         self
     }
 
+    /// Queue moving of a key to another section, bringing adjacent comments.
+    ///
+    /// See [`Editor::move_key_bring`] for details.
+    pub fn move_key_bring(&mut self, from: &str, to: &str, bring: BringAlong) -> &mut Self {
+        self.editor.move_key_bring(from, to, bring);
+        self
+    }
+
+    /// Queue promotion of a key from a sub-table to the document root.
     /// Queue replacement of all keys in a section.
     ///
     /// See [`Editor::replace_section`] for details.
@@ -2131,6 +2280,13 @@ impl<'a> EditorHandle<'a> {
         self.editor.promote_key(from);
         self
     }
+    /// Queue promoting of a key to root, bringing adjacent comments.
+    ///
+    /// See [`Editor::promote_key_bring`] for details.
+    pub fn promote_key_bring(&mut self, from: &str, bring: BringAlong) -> &mut Self {
+        self.editor.promote_key_bring(from, bring);
+        self
+    }
 
     /// Queue moving of a key to another section, auto-creating the
     /// destination table if needed.
@@ -2138,6 +2294,15 @@ impl<'a> EditorHandle<'a> {
     /// See [`Editor::move_key_create`] for details.
     pub fn move_key_create(&mut self, from: &str, to: &str) -> &mut Self {
         self.editor.move_key_create(from, to);
+        self
+    }
+
+    /// Queue moving of a key to another section (auto-creating if needed),
+    /// bringing adjacent comments.
+    ///
+    /// See [`Editor::move_key_create_bring`] for details.
+    pub fn move_key_create_bring(&mut self, from: &str, to: &str, bring: BringAlong) -> &mut Self {
+        self.editor.move_key_create_bring(from, to, bring);
         self
     }
 
