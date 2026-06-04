@@ -8,7 +8,7 @@
 
 name: Nightly
 
-permissions: read-all  # zizmor: ignore[excessive-permissions]
+permissions: read-all
 
 on:
   schedule:

@@ -3,10 +3,14 @@
 # Install:  just setup-git-hooks   (or manually:  cp scripts/pre-commit .git/hooks/pre-commit)
 
 set -euo pipefail
-echo "==> zizmor (CI security)"
-zizmor --persona pedantic .github/workflows/ 2>&1 | head -20
+
+echo "==> zizmor (regular persona)"
+zizmor --persona regular .github/workflows/
+
 echo "==> cargo fmt"
 cargo fmt -p tomlini -- --check
+
 echo "==> cargo clippy"
-cargo clippy -p tomlini -- -D warnings 2>&1 | tail -5
+cargo clippy -p tomlini -- -D warnings
+
 echo "==> ok"

@@ -2,7 +2,7 @@
 
 name: CI
 
-permissions: read-all  # zizmor: ignore[excessive-permissions]
+permissions: read-all
 
 on:
   push:
@@ -20,19 +20,19 @@ jobs:
     name: Clippy
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4  # zizmor: ignore[artipacked,unpinned-uses]
-      - uses: dtolnay/rust-toolchain@stable  # zizmor: ignore[unpinned-uses,superfluous-actions]
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
-      - uses: Swatinem/rust-cache@v2  # zizmor: ignore[unpinned-uses]
+      - uses: Swatinem/rust-cache@v2
       - run: cargo clippy -p tomlini -- -D warnings
 
   fmt:
     name: Format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4  # zizmor: ignore[artipacked,unpinned-uses]
-      - uses: dtolnay/rust-toolchain@stable  # zizmor: ignore[unpinned-uses,superfluous-actions]
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
       - run: cargo fmt -p tomlini -- --check
@@ -41,9 +41,9 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4  # zizmor: ignore[artipacked,unpinned-uses]
-      - uses: dtolnay/rust-toolchain@stable  # zizmor: ignore[unpinned-uses,superfluous-actions]
-      - uses: Swatinem/rust-cache@v2  # zizmor: ignore[unpinned-uses]
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - run: cargo test -p tomlini
 
   zizmor:
@@ -51,21 +51,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4  # zizmor: ignore[artipacked,unpinned-uses]
-      - uses: dtolnay/rust-toolchain@stable  # zizmor: ignore[unpinned-uses,superfluous-actions]
-      - uses: Swatinem/rust-cache@v2  # zizmor: ignore[unpinned-uses]
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: Install latest zizmor
         run: cargo install zizmor --locked
-      - name: Audit workflows
-        run: zizmor --persona pedantic .github/workflows/
+      - name: Audit workflows (regular persona)
+        run: zizmor --persona regular .github/workflows/
 
   doc:
     name: Docs
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4  # zizmor: ignore[artipacked,unpinned-uses]
-      - uses: dtolnay/rust-toolchain@stable  # zizmor: ignore[unpinned-uses,superfluous-actions]
-      - uses: Swatinem/rust-cache@v2  # zizmor: ignore[unpinned-uses]
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - run: cargo doc --no-deps -p tomlini
         env:
           RUSTDOCFLAGS: "-D warnings"

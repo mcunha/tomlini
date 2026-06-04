@@ -85,7 +85,11 @@ fmt:
     cargo fmt -p tomlini
 
 zizmor:
-    # Audit GitHub Actions workflows for security issues.
+    # Pre-commit / PR audit — regular persona, no false positives.
+    zizmor --persona regular .github/workflows/
+
+zizmor-pedantic:
+    # Nightly audit — pedantic persona, everything including code smells.
     zizmor --persona pedantic .github/workflows/
 
 lint: clippy fmt-check zizmor

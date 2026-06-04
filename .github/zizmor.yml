@@ -1,0 +1,41 @@
+# zizmor configuration — per-rule accepted risks for this repository.
+# https://docs.zizmor.sh/configuration/
+
+rules:
+  # Public repository with no secrets: Artipacked attack chain is not
+  # exploitable here. (Low-confidence audit, only matters for private repos.)
+  artipacked:
+    disable: true
+
+  # read-all is the practical minimum for GitHub Actions workflows that
+  # need checkout.  Per-job permissions: {} would block artifact upload
+  # and other benign operations.  No credential risk in public repo.
+  excessive-permissions:
+    ignore:
+      - ci.yml:5
+      - nightly.yml:11
+
+  # We pin actions to version tags (e.g. @v4, @stable, @v2) — not commit
+  # hashes.  This is a reasonable tradeoff for a public repo: tag-pinned
+  # actions from well-known owners (actions/, dtolnay/, Swatinem/) are
+  # widely audited and low supply-chain risk.
+  #
+  # The "ref-pin" policy means any uses: clause must have a ref (tag or
+  # hash).  A bare "uses: actions/checkout" with no ref WOULD be flagged.
+  # If a new action is added without a tag, zizmor catches it.
+  unpinned-uses:
+    config:
+      policies:
+        "*": ref-pin
+
+
+  # dtolnay/rust-toolchain IS required for components: clippy and
+  # components: rustfmt.  The ubuntu-latest runner's default Rust toolchain
+  # does NOT include these components, so the action is not superfluous.
+  superfluous-actions:
+    ignore:
+      - ci.yml:24
+      - ci.yml:35
+      - ci.yml:45
+      - ci.yml:55
+      - ci.yml:67
