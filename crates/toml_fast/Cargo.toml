@@ -1,0 +1,22 @@
+[package]
+name = "toml_fast"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+description = "Fast flat-span TOML parser for SAX-style editing"
+
+
+[features]
+default = ["std"]
+std = ["alloc"]
+alloc = []
+[package.metadata.release]
+release = false
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+proptest = "1.11.0"
+

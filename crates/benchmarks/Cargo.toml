@@ -1,0 +1,28 @@
+[package]
+name = "toml_benchmarks"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[package.metadata.release]
+release = false
+
+[dependencies]
+serde = { workspace = true, features = ["derive"] }
+
+[dev-dependencies]
+toml_fast = { path = "../toml_fast" }
+toml_fast_serde = { path = "../toml_fast_serde" }
+divan = "0.1"
+
+[[bench]]
+name = "3-edit"
+harness = false
+
+[[bench]]
+name = "6-serde"
+harness = false
+
+[lints]
+workspace = true

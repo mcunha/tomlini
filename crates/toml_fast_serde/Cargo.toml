@@ -1,0 +1,28 @@
+[package]
+name = "toml_fast_serde"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+description = "Serde Deserializer powered by toml_fast's flat-span parser"
+
+[package.metadata.release]
+release = false
+
+[features]
+default = ["std"]
+std = ["toml_fast/std", "toml_writer/std", "toml_datetime/std"]
+alloc = ["toml_fast/alloc", "toml_writer/alloc", "toml_datetime/alloc"]
+
+[dependencies]
+toml_fast = { path = "../toml_fast", default-features = false }
+toml_datetime = { path = "../toml_datetime", features = ["serde"] }
+serde = { version = "1", default-features = false, features = ["derive"] }
+toml_writer = { path = "../toml_writer", default-features = false }
+
+[dev-dependencies]
+serde = { version = "1", features = ["derive"] }
+toml_fast = { path = "../toml_fast" }
+
+[lints]
+workspace = true
