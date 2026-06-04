@@ -57,7 +57,7 @@ struct Op {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-enum OpKind { Set, Insert, Remove, InsertSection, ReplaceSection, ClearSection, RenameSection, RenameKey, MoveKey, PromoteKey, MoveKeyCreate, ArrayPush, ArraySet, ArrayInsert, ArrayRemove, AotPush, AotSet, InlineSet, InlineInsert, InlineRemove, ReorderRoot }
+enum OpKind { Set, Insert, Remove, InsertSection, ReplaceSection, ClearSection, RenameSection, RenameKey, MoveKey, PromoteKey, MoveKeyCreate, ArrayPush, ArraySet, ArrayInsert, ArrayRemove, AotPush, AotSet, AotRemove, InlineSet, InlineInsert, InlineRemove, ReorderRoot }
 
 // ============================================================
 // Helpers
@@ -861,11 +861,58 @@ impl Editor {
                         return Err(EditError::NotFound);
                     }
                 }
-                // ---- Inline table operations ----
+                OpKind::AotRemove => {
+                    let target = op.key.as_str();
+                    let idx = op.index.ok_or(EditError::InvalidPath)?;
+
+                    let mut sections: Vec<(usize, u32, u32)> = Vec::new();
+                    let mut i = 0;
+                    while i < doc.spans.len() {
+                        if doc.spans[i].kind == SpanKind::ArrayTableOpen {
+                            let mut j = i + 1;
+                            let mut parts: Vec<String> = Vec::new();
+                            while j < doc.spans.len() {
+                                match doc.spans[j].kind {
+                                    SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {
+                                        parts.push(edit::clean_key_span(&doc.source, &doc.spans[j]).to_string());
+                                        j += 1;
+                                    }
+                                    SpanKind::Dot => { j += 1; }
+                                    SpanKind::ArrayTableClose => { j += 1; break; }
+                                    _ => break,
+                                }
+                            }
+                            if parts.join(".") == target {
+                                let mut k = j;
+                                while k < doc.spans.len() {
+                                    if doc.spans[k].kind == SpanKind::ArrayTableOpen
+                                        || doc.spans[k].kind == SpanKind::ArrayOpen
+                                    { break; }
+                                    k += 1;
+                                }
+                                let end_byte = if k > 0 && k <= doc.spans.len() {
+                                    doc.spans[k - 1].end as usize
+                                } else {
+                                    doc.source.len()
+                                };
+                                sections.push((i, doc.spans[i].start, end_byte as u32));
+                            }
+                            i = j;
+                        } else {
+                            i += 1;
+                        }
+                    }
+
+                    if idx >= sections.len() {
+                        return Err(EditError::InvalidPath);
+                    }
+                    let (_, remove_start, remove_end) = sections[idx];
+                    resolved.push(Resolved { start: remove_start, end: remove_end, replacement: String::new() });
+                }
                 OpKind::InlineSet => {
                     let (open_idx, close_idx) = resolve_inline_table(doc, &index, op)?;
-                    let inline_key = op.inline_key.as_deref().ok_or(EditError::InvalidPath)?;
                     let pairs = walk_inline_pairs(&doc.spans, &doc.source, open_idx, close_idx);
+                    let inline_key = op.inline_key.as_deref().ok_or(EditError::InvalidPath)?;
                     let (_key, val_idx, _comma) = pairs.iter()
                         .find(|(k, _, _)| k == inline_key)
                         .ok_or(EditError::NotFound)?;
@@ -1403,6 +1450,34 @@ impl Editor {
         self
     }
 
+    /// Remove the `index`-th `[[entry]]` from the array-of-tables at `path`.
+    ///
+    /// This deletes the entire section including its header line and all
+    /// key-value pairs.  Indices are 0-based.  After removal, subsequent
+    /// entries shift down, so a second `aot_remove` with the same index
+    /// removes the new occupant.
+    ///
+    /// Returns [`EditError::InvalidPath`] if `path` is not an AOT or
+    /// `index` is out of bounds.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// // [[server]]\nhost = "a"\n[[server]]\nhost = "b"\n
+    /// doc.edit().aot_remove("server", 0).commit()?;
+    /// // Only "b" remains.
+    /// ```
+    pub fn aot_remove(&mut self, path: &str, index: usize) -> &mut Self {
+        let (table, aot_key) = split_path(path);
+        self.ops.push(Op {
+            kind: OpKind::AotRemove, table, key: aot_key, value: String::new(),
+            prefix: None, suffix: None,
+            to_table: Vec::new(), to_key: String::new(), pairs: Vec::new(),
+            index: Some(index), inline_key: None,
+        });
+        self
+    }
+
     // ---- Inline table operations ----
 
     /// Set (replace) the value for `key` within the inline table at `path`.
@@ -1861,7 +1936,15 @@ impl<'a> EditorHandle<'a> {
         self
     }
 
-    /// Set a key-value pair inside an inline table.
+    /// Queue removing an `[[entry]]` from an array-of-tables.
+    ///
+    /// See [`Editor::aot_remove`] for details.
+    pub fn aot_remove(&mut self, path: &str, index: usize) -> &mut Self {
+        self.editor.aot_remove(path, index);
+        self
+    }
+
+    /// Queue setting a value in an inline table.
     ///
     /// See [`Editor::inline_set`] for details.
     pub fn inline_set(&mut self, path: &str, key: &str, value: &str) -> &mut Self {

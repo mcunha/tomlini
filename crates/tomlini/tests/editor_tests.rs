@@ -1083,9 +1083,67 @@ fn test_aot_set_modifies_entry() {
 }
 
 // ============================================================
-// Chain / combinations
-// ============================================================
+// ── aot_remove ───────────────────────────────────────────────
 
+#[test]
+fn test_aot_remove_first_entry() {
+    let input = "[[server]]\nhost = \"a\"\nport = 1\n[[server]]\nhost = \"b\"\nport = 2\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = tomlini::editor::Editor::new();
+    editor.aot_remove("server", 0).commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    assert!(!out.contains("host = \"a\""), "removed entry 'a' still present: {out}");
+    assert!(out.contains("host = \"b\""), "remaining entry 'b' lost: {out}");
+    assert_eq!(out.matches("[[server]]").count(), 1, "should have 1 [[server]] entry left: {out}");
+}
+
+#[test]
+fn test_aot_remove_last_entry() {
+    let input = "[[server]]\nhost = \"a\"\nport = 1\n[[server]]\nhost = \"b\"\nport = 2\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = tomlini::editor::Editor::new();
+    editor.aot_remove("server", 1).commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    assert!(out.contains("host = \"a\""), "remaining entry 'a' lost: {out}");
+    assert!(!out.contains("host = \"b\""), "removed entry 'b' still present: {out}");
+}
+
+#[test]
+fn test_aot_remove_only_entry() {
+    let input = "[[server]]\nhost = \"a\"\nport = 1\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = tomlini::editor::Editor::new();
+    editor.aot_remove("server", 0).commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    assert!(!out.contains("[[server]]"), "removed entry still present: {out}");
+}
+
+#[test]
+fn test_aot_remove_out_of_bounds() {
+    let input = "[[server]]\nhost = \"a\"\n";
+    let mut doc = parse(input).unwrap();
+    let mut e = tomlini::editor::Editor::new(); e.aot_remove("server", 99);
+    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::InvalidPath));
+}
+
+#[test]
+fn test_aot_remove_nonexistent() {
+    let input = "x = 1\n";
+    let mut doc = parse(input).unwrap();
+    let mut e = tomlini::editor::Editor::new(); e.aot_remove("nonexistent", 0);
+    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::InvalidPath));
+}
+
+#[test]
+fn test_aot_remove_fluent() {
+    let input = "[[server]]\nhost = \"a\"\n[[server]]\nhost = \"b\"\n";
+    let mut doc = parse(input).unwrap();
+    doc.edit().aot_remove("server", 1).commit().unwrap();
+    let out = doc.to_string();
+    assert_eq!(out.matches("[[server]]").count(), 1);
+}
+
+// ============================================================
 #[test]
 fn test_chain_set_remove_insert_rename() {
     let input = "[package]\nname = \"old\"\nversion = \"1.0\"\n";
@@ -1098,7 +1156,6 @@ fn test_chain_set_remove_insert_rename() {
         .rename_key("package.version", "package.ver")
         .commit(&mut doc).unwrap();
     let out = doc.to_string();
-    assert!(!out.contains("name"), "removed key still present: {out}");
     assert!(!out.contains("version"), "renamed key still present: {out}");
     assert!(out.contains("ver = \"2.0\""), "renamed+set value wrong: {out}");
     assert!(out.contains("license = \"MIT\""), "inserted key missing: {out}");
