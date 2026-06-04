@@ -26,9 +26,13 @@ pub(crate) fn clean_key<'s>(source: &'s str, span: &Span) -> &'s str {
     let mut s = span.start as usize;
     let mut e = span.end as usize;
     // trim leading whitespace
-    while s < e && matches!(bytes[s], b' ' | b'\t') { s += 1; }
+    while s < e && matches!(bytes[s], b' ' | b'\t') {
+        s += 1;
+    }
     // trim trailing whitespace
-    while e > s && matches!(bytes[e - 1], b' ' | b'\t') { e -= 1; }
+    while e > s && matches!(bytes[e - 1], b' ' | b'\t') {
+        e -= 1;
+    }
     // strip surrounding quotes
     if e > s + 1 && matches!(bytes[s], b'"' | b'\'') && bytes[s] == bytes[e - 1] {
         s += 1;
@@ -36,8 +40,6 @@ pub(crate) fn clean_key<'s>(source: &'s str, span: &Span) -> &'s str {
     }
     &source[s..e]
 }
-
-
 
 /// Convenience: clean a key referenced by a span index.
 #[inline]
@@ -64,13 +66,24 @@ pub(crate) fn build_index(doc: &FlatDoc) -> Vec<(Vec<String>, Entry)> {
                             path.push(clean_key(&doc.source, &doc.spans[i]));
                             i += 1;
                         }
-                        SpanKind::Dot => { i += 1; }
-                        SpanKind::ArrayClose => {
-                            if !is_aot { current_table = path; }
-                            i += 1; break;
+                        SpanKind::Dot => {
+                            i += 1;
                         }
-                        SpanKind::ArrayTableClose => { i += 1; break; }
-                        _ => { i += 1; break; }
+                        SpanKind::ArrayClose => {
+                            if !is_aot {
+                                current_table = path;
+                            }
+                            i += 1;
+                            break;
+                        }
+                        SpanKind::ArrayTableClose => {
+                            i += 1;
+                            break;
+                        }
+                        _ => {
+                            i += 1;
+                            break;
+                        }
                     }
                 }
                 continue;
@@ -83,10 +96,16 @@ pub(crate) fn build_index(doc: &FlatDoc) -> Vec<(Vec<String>, Entry)> {
                 let mut j = i + 1;
 
                 loop {
-                    if j >= doc.spans.len() { break; }
+                    if j >= doc.spans.len() {
+                        break;
+                    }
                     match doc.spans[j].kind {
-                        SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { j += 1; }
-                        SpanKind::Dot => { j += 1; }
+                        SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => {
+                            j += 1;
+                        }
+                        SpanKind::Dot => {
+                            j += 1;
+                        }
                         SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {
                             key_parts.push(clean_key(&doc.source, &doc.spans[j]));
                             j += 1;
@@ -96,27 +115,44 @@ pub(crate) fn build_index(doc: &FlatDoc) -> Vec<(Vec<String>, Entry)> {
                             let mut k = j;
                             while k < doc.spans.len() {
                                 if is_value_kind(doc.spans[k].kind) {
-                                    let path: Vec<String> = current_table.iter()
+                                    let path: Vec<String> = current_table
+                                        .iter()
                                         .chain(&key_parts)
                                         .map(|s| s.to_string())
                                         .collect();
-                                    index.push((path, Entry { key_start, value_idx: k }));
+                                    index.push((
+                                        path,
+                                        Entry {
+                                            key_start,
+                                            value_idx: k,
+                                        },
+                                    ));
                                     i = k;
                                     break;
                                 }
                                 match doc.spans[k].kind {
-                                    SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => { k += 1; }
-                                    _ => { break; }
+                                    SpanKind::Whitespace
+                                    | SpanKind::Newline
+                                    | SpanKind::Comment => {
+                                        k += 1;
+                                    }
+                                    _ => {
+                                        break;
+                                    }
                                 }
                             }
                             break;
                         }
-                        _ => { break; }
+                        _ => {
+                            break;
+                        }
                     }
                 }
                 i += 1;
             }
-            _ => { i += 1; }
+            _ => {
+                i += 1;
+            }
         }
     }
 
@@ -124,7 +160,9 @@ pub(crate) fn build_index(doc: &FlatDoc) -> Vec<(Vec<String>, Entry)> {
 }
 
 pub(crate) fn adjust_spans(spans: &mut [Span], pos: u32, delta: i32) {
-    if delta == 0 { return; }
+    if delta == 0 {
+        return;
+    }
     let first = match spans.binary_search_by_key(&pos, |s| s.start) {
         Ok(idx) => idx,
         Err(idx) => idx,
@@ -136,11 +174,19 @@ pub(crate) fn adjust_spans(spans: &mut [Span], pos: u32, delta: i32) {
 }
 
 fn is_value_kind(k: SpanKind) -> bool {
-    matches!(k,
-        SpanKind::Integer | SpanKind::Float | SpanKind::Boolean
-        | SpanKind::Datetime | SpanKind::BasicString | SpanKind::LiteralString
-        | SpanKind::MlBasicString | SpanKind::MlLiteralString
-        | SpanKind::InlineTableOpen | SpanKind::ArrayOpen)
+    matches!(
+        k,
+        SpanKind::Integer
+            | SpanKind::Float
+            | SpanKind::Boolean
+            | SpanKind::Datetime
+            | SpanKind::BasicString
+            | SpanKind::LiteralString
+            | SpanKind::MlBasicString
+            | SpanKind::MlLiteralString
+            | SpanKind::InlineTableOpen
+            | SpanKind::ArrayOpen
+    )
 }
 
 // ============================================================
@@ -186,7 +232,9 @@ impl FlatDoc {
     /// replacing the value span itself.
     pub fn set(&mut self, path: &[&str], new_value: &str) -> Result<(), EditError> {
         let index = build_index(self);
-        let entry = index.iter().find(|(p, _)| p.iter().map(|s| s.as_str()).collect::<Vec<_>>() == path)
+        let entry = index
+            .iter()
+            .find(|(p, _)| p.iter().map(|s| s.as_str()).collect::<Vec<_>>() == path)
             .map(|(_, e)| e)
             .ok_or(EditError::NotFound)?;
 
@@ -212,9 +260,16 @@ impl FlatDoc {
         let index = build_index(self);
 
         // Find the last entry in the target table
-        let entries_in_table: Vec<_> = index.iter()
-            .filter(|(p, _)| p.len() == table_path.len() + 1
-                && p[..table_path.len()].iter().map(|s| s.as_str()).collect::<Vec<_>>() == table_path)
+        let entries_in_table: Vec<_> = index
+            .iter()
+            .filter(|(p, _)| {
+                p.len() == table_path.len() + 1
+                    && p[..table_path.len()]
+                        .iter()
+                        .map(|s| s.as_str())
+                        .collect::<Vec<_>>()
+                        == table_path
+            })
             .collect();
 
         let (insertion_point, indentation) = if let Some((_, last)) = entries_in_table.last() {
@@ -240,7 +295,9 @@ impl FlatDoc {
             while end < self.source.len() && self.source.as_bytes()[end] != b'\n' {
                 end += 1;
             }
-            if end < self.source.len() { end += 1; }
+            if end < self.source.len() {
+                end += 1;
+            }
 
             (end as u32, format!("{indent}{key} = {value}\n"))
         } else {
@@ -258,21 +315,31 @@ impl FlatDoc {
                         let mut hdr = Vec::new();
                         while j < self.spans.len() {
                             match self.spans[j].kind {
-                                SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {
-                                    hdr.push(clean_key_span(&self.source, &self.spans[j]).to_string());
+                                SpanKind::BareKey
+                                | SpanKind::BasicString
+                                | SpanKind::LiteralString => {
+                                    hdr.push(
+                                        clean_key_span(&self.source, &self.spans[j]).to_string(),
+                                    );
                                     j += 1;
                                 }
-                                SpanKind::Dot => { j += 1; }
+                                SpanKind::Dot => {
+                                    j += 1;
+                                }
                                 SpanKind::ArrayClose => {
                                     if hdr == table_path {
                                         found = Some(self.spans[j].end);
                                     }
                                     break;
                                 }
-                                _ => { break; }
+                                _ => {
+                                    break;
+                                }
                             }
                         }
-                        if found.is_some() { break; }
+                        if found.is_some() {
+                            break;
+                        }
                     }
                     i += 1;
                 }
@@ -283,11 +350,14 @@ impl FlatDoc {
             while pos < self.source.len() && self.source.as_bytes()[pos] != b'\n' {
                 pos += 1;
             }
-            if pos < self.source.len() { pos += 1; }
+            if pos < self.source.len() {
+                pos += 1;
+            }
             (pos as u32, format!("{key} = {value}\n"))
         };
-        let delta = indentation.as_bytes().len() as i32;
-        self.source.insert_str(insertion_point as usize, &indentation);
+        let delta = indentation.len() as i32;
+        self.source
+            .insert_str(insertion_point as usize, &indentation);
         adjust_spans(&mut self.spans, insertion_point, delta);
         Ok(())
     }
@@ -295,7 +365,9 @@ impl FlatDoc {
     /// Remove the key-value pair at `path` from the document.
     pub fn remove(&mut self, path: &[&str]) -> Result<(), EditError> {
         let index = build_index(self);
-        let entry = index.iter().find(|(p, _)| p.iter().map(|s| s.as_str()).collect::<Vec<_>>() == path)
+        let entry = index
+            .iter()
+            .find(|(p, _)| p.iter().map(|s| s.as_str()).collect::<Vec<_>>() == path)
             .map(|(_, e)| e)
             .ok_or(EditError::NotFound)?;
 
@@ -315,7 +387,9 @@ impl FlatDoc {
         while remove_end < self.source.len() && self.source.as_bytes()[remove_end] != b'\n' {
             remove_end += 1;
         }
-        if remove_end < self.source.len() { remove_end += 1; } // include the newline
+        if remove_end < self.source.len() {
+            remove_end += 1;
+        } // include the newline
 
         let old_len = (remove_end - remove_start) as i32;
         self.source.replace_range(remove_start..remove_end, "");

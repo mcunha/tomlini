@@ -3,15 +3,15 @@
 //! Validates structural TOML rules, duplicate keys, table conflicts,
 //! AOT ordering, and (in strict mode) control characters and key syntax.
 
-use crate::{FlatDoc, SpanKind};
 use crate::edit;
+use crate::{FlatDoc, SpanKind};
 
+#[cfg(not(feature = "std"))]
+use alloc::collections::BTreeMap;
 #[cfg(not(feature = "std"))]
 use alloc::string::{String, ToString};
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
-#[cfg(not(feature = "std"))]
-use alloc::collections::BTreeMap;
 
 #[cfg(feature = "std")]
 use std::collections::BTreeMap;
@@ -101,11 +101,8 @@ fn walk_spans(doc: &FlatDoc) -> SpanWalk {
                 i += 1;
                 while i < doc.spans.len() {
                     match doc.spans[i].kind {
-                        SpanKind::BareKey
-                        | SpanKind::BasicString
-                        | SpanKind::LiteralString => {
-                            let key =
-                                edit::clean_key(&doc.source, &doc.spans[i]);
+                        SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {
+                            let key = edit::clean_key(&doc.source, &doc.spans[i]);
                             path.push(key.to_string());
                             i += 1;
                         }
@@ -131,9 +128,7 @@ fn walk_spans(doc: &FlatDoc) -> SpanWalk {
 
             SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {
                 let mut key_parts: Vec<String> = Vec::with_capacity(4);
-                key_parts.push(
-                    edit::clean_key(&doc.source, &span).to_string(),
-                );
+                key_parts.push(edit::clean_key(&doc.source, &span).to_string());
                 let key_start = i;
                 let mut j = i + 1;
 
@@ -142,28 +137,19 @@ fn walk_spans(doc: &FlatDoc) -> SpanWalk {
                         break;
                     }
                     match doc.spans[j].kind {
-                        SpanKind::Whitespace
-                        | SpanKind::Newline
-                        | SpanKind::Comment => {
+                        SpanKind::Whitespace | SpanKind::Newline | SpanKind::Comment => {
                             j += 1;
                         }
                         SpanKind::Dot => {
                             j += 1;
                         }
-                        SpanKind::BareKey
-                        | SpanKind::BasicString
-                        | SpanKind::LiteralString => {
-                            key_parts.push(
-                                edit::clean_key(&doc.source, &doc.spans[j])
-                                    .to_string(),
-                            );
+                        SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {
+                            key_parts.push(edit::clean_key(&doc.source, &doc.spans[j]).to_string());
                             j += 1;
                         }
                         SpanKind::Equals => {
                             let mut full_path: Vec<String> =
-                                Vec::with_capacity(
-                                    current_table.len() + key_parts.len(),
-                                );
+                                Vec::with_capacity(current_table.len() + key_parts.len());
                             full_path.extend_from_slice(&current_table);
                             full_path.extend(key_parts.clone());
 
@@ -175,18 +161,12 @@ fn walk_spans(doc: &FlatDoc) -> SpanWalk {
                             if key_parts.len() > 1 {
                                 let prefix_base_len = current_table.len();
                                 for prefix_extra in 1..key_parts.len() {
-                                    let prefix_len =
-                                        prefix_base_len + prefix_extra;
-                                    let prefix: Vec<String> = full_path
-                                        [..prefix_len]
-                                        .to_vec();
+                                    let prefix_len = prefix_base_len + prefix_extra;
+                                    let prefix: Vec<String> = full_path[..prefix_len].to_vec();
                                     if !table_headers.contains(&prefix)
-                                        && !implicit_tables
-                                            .iter()
-                                            .any(|(p, _)| p == &prefix)
+                                        && !implicit_tables.iter().any(|(p, _)| p == &prefix)
                                     {
-                                        implicit_tables
-                                            .push((prefix, key_start));
+                                        implicit_tables.push((prefix, key_start));
                                     }
                                 }
                             }
@@ -349,10 +329,7 @@ fn check_table_conflicts(
             if let Some((entry_path, _)) = walk
                 .entries
                 .iter()
-                .find(|(ep, _)| {
-                    ep.starts_with(imp_path.as_slice())
-                        && ep.len() > imp_path.len()
-                })
+                .find(|(ep, _)| ep.starts_with(imp_path.as_slice()) && ep.len() > imp_path.len())
             {
                 errors.push(ValidationError {
                     pos: *key_start,
@@ -381,9 +358,7 @@ fn check_aot_ordering(doc: &FlatDoc, errors: &mut Vec<ValidationError>) {
             i += 1;
             while i < doc.spans.len() {
                 match doc.spans[i].kind {
-                    SpanKind::BareKey
-                    | SpanKind::BasicString
-                    | SpanKind::LiteralString => {
+                    SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {
                         let key = edit::clean_key(&doc.source, &doc.spans[i]);
                         path.push(key.to_string());
                         i += 1;
@@ -470,9 +445,10 @@ fn check_key_syntax(doc: &FlatDoc, errors: &mut Vec<ValidationError>) {
                 kind: ValidationErrorKind::InvalidKey,
                 msg: "bare key must not be empty".to_string(),
             });
-        } else if !text.bytes().all(|b| {
-            matches!(b, b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_')
-        }) {
+        } else if !text
+            .bytes()
+            .all(|b| matches!(b, b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_'))
+        {
             errors.push(ValidationError {
                 pos: span.start as usize,
                 kind: ValidationErrorKind::InvalidKey,

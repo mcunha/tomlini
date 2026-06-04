@@ -52,4 +52,6 @@ fn editor_chained_ops(bencher: divan::Bencher) {
     });
 }
 
-fn main() { divan::main(); }
+fn main() {
+    divan::main();
+}

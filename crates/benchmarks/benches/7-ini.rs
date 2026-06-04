@@ -141,10 +141,7 @@ fn edit_ini_insert_key() -> String {
 #[divan::bench]
 fn edit_large_ini_set_value() -> String {
     let mut doc = tomlini::parse(&LARGE_INI).unwrap();
-    doc.edit()
-        .set("50.key_25", "modified")
-        .commit()
-        .unwrap();
+    doc.edit().set("50.key_25", "modified").commit().unwrap();
     doc.to_string()
 }
 
@@ -166,4 +163,6 @@ fn roundtrip_classic_ini() -> String {
     doc.to_string()
 }
 
-fn main() { divan::main(); }
+fn main() {
+    divan::main();
+}

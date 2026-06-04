@@ -157,10 +157,10 @@ extern crate alloc;
 
 #[cfg(feature = "std")]
 extern crate std;
-#[cfg(feature = "std")]
-use std::fmt;
 #[cfg(all(feature = "alloc", not(feature = "std")))]
 use alloc::fmt;
+#[cfg(feature = "std")]
+use std::fmt;
 
 #[cfg(feature = "alloc")]
 mod edit;
@@ -171,7 +171,7 @@ pub use edit::EditError;
 #[cfg(feature = "alloc")]
 mod validate;
 #[cfg(feature = "alloc")]
-pub use validate::{ValidationMode, ValidationError, ValidationErrorKind};
+pub use validate::{ValidationError, ValidationErrorKind, ValidationMode};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct Span {
@@ -243,9 +243,15 @@ impl std::error::Error for ParseError {}
 /// TOML 1.1.0: backslash at end of line trims newline + leading whitespace.
 fn skip_trim(bytes: &[u8], pos: usize, len: usize) -> usize {
     let mut p = pos;
-    if p < len && bytes[p] == b'\r' { p += 1; }
-    if p < len && bytes[p] == b'\n' { p += 1; }
-    while p < len && matches!(bytes[p], b' ' | b'\t') { p += 1; }
+    if p < len && bytes[p] == b'\r' {
+        p += 1;
+    }
+    if p < len && bytes[p] == b'\n' {
+        p += 1;
+    }
+    while p < len && matches!(bytes[p], b' ' | b'\t') {
+        p += 1;
+    }
     p
 }
 
@@ -266,10 +272,18 @@ fn lex_string<S: SpanSink>(
         }
         loop {
             if pos >= len {
-                *error = Some(ParseError { pos: start as u32, msg: "unterminated multi-line basic string" });
+                *error = Some(ParseError {
+                    pos: start as u32,
+                    msg: "unterminated multi-line basic string",
+                });
                 return pos;
             }
-            if bytes[pos] == b'"' && pos + 1 < len && bytes[pos + 1] == b'"' && pos + 2 < len && bytes[pos + 2] == b'"' {
+            if bytes[pos] == b'"'
+                && pos + 1 < len
+                && bytes[pos + 1] == b'"'
+                && pos + 2 < len
+                && bytes[pos + 2] == b'"'
+            {
                 // Count consecutive quotes. 3 = closing. 4-5 = leading ones
                 // are content, last 3 close. 6+ = invalid (content would need
                 // escaping); first 3 close, trailing quotes cause parse error.
@@ -292,7 +306,9 @@ fn lex_string<S: SpanSink>(
                 pos += 1;
                 let prev = pos;
                 pos = skip_trim(bytes, pos, len);
-                if pos == prev { pos += 1; }
+                if pos == prev {
+                    pos += 1;
+                }
             } else {
                 pos += 1;
             }
@@ -305,13 +321,18 @@ fn lex_string<S: SpanSink>(
                 pos += 1;
                 let prev = pos;
                 pos = skip_trim(bytes, pos, len);
-                if pos == prev { pos += 1; }
+                if pos == prev {
+                    pos += 1;
+                }
             } else {
                 pos += 1;
             }
         }
         if pos >= len {
-            *error = Some(ParseError { pos: start as u32, msg: "unterminated basic string" });
+            *error = Some(ParseError {
+                pos: start as u32,
+                msg: "unterminated basic string",
+            });
             return pos;
         }
         pos += 1;
@@ -384,7 +405,7 @@ fn lex_literal_string<S: SpanSink>(
         }
         if pos >= len {
             *error = Some(ParseError {
-                    pos: start as u32,
+                pos: start as u32,
                 msg: "unterminated literal string",
             });
             return pos;
@@ -523,12 +544,14 @@ fn is_float(bytes: &[u8], start: usize, end: usize) -> bool {
             return true;
         }
     }
-    bytes[start..end].iter().any(|&b| b == b'.' || b == b'e' || b == b'E')
+    bytes[start..end]
+        .iter()
+        .any(|&b| b == b'.' || b == b'e' || b == b'E')
 }
 
 fn is_radix_digit(b: u8, prefix: u8) -> bool {
     match prefix {
-        b'x' => matches!(b, b'0'..=b'9' | b'a'..=b'f' | b'A'..=b'F'),
+        b'x' => b.is_ascii_hexdigit(),
         b'o' => matches!(b, b'0'..=b'7'),
         b'b' => matches!(b, b'0' | b'1'),
         _ => false,
@@ -618,9 +641,7 @@ fn try_datetime(bytes: &[u8], mut pos: usize, len: usize) -> Option<usize> {
         if pos < len {
             if bytes[pos] == b'Z' || bytes[pos] == b'z' {
                 pos += 1;
-            } else if pos + 6 <= len
-                && matches!(bytes[pos], b'+' | b'-')
-                && bytes[pos + 3] == b':'
+            } else if pos + 6 <= len && matches!(bytes[pos], b'+' | b'-') && bytes[pos + 3] == b':'
             {
                 pos += 6;
             }
@@ -628,11 +649,7 @@ fn try_datetime(bytes: &[u8], mut pos: usize, len: usize) -> Option<usize> {
         return Some(pos);
     }
 
-    if pos == start {
-        None
-    } else {
-        Some(pos)
-    }
+    if pos == start { None } else { Some(pos) }
 }
 
 // ---------------------------------------------------------------------------
@@ -651,7 +668,9 @@ pub fn parse_into(input: &str, sink: &mut impl SpanSink) -> Result<(), ParseErro
 
     // Returns true if `p` is at line start (preceded only by whitespace/newlines).
     fn is_line_start(bytes: &[u8], p: usize) -> bool {
-        if p == 0 { return true; }
+        if p == 0 {
+            return true;
+        }
         let mut i = p;
         while i > 0 {
             i -= 1;
@@ -817,15 +836,12 @@ pub fn parse(input: &str) -> Result<FlatDoc, ParseError> {
 }
 
 #[cfg(feature = "alloc")]
-impl FlatDoc {
-    /// Return the document's source string.
-    ///
-    /// This clones the internal buffer — prefer [`Display`](fmt::Display)
-    /// for read-only access.
-    pub fn to_string(&self) -> String {
-        self.source.clone()
+impl Default for FlatDoc {
+    fn default() -> Self {
+        FlatDoc::new()
     }
 }
+
 
 #[cfg(feature = "alloc")]
 /// Decode a TOML string value: resolve escape sequences.
@@ -966,7 +982,8 @@ impl FlatDoc {
     pub fn keys(&mut self) -> Vec<String> {
         self.build_index_if_needed();
         let idx = self.index.as_ref().unwrap();
-        let mut keys: Vec<String> = idx.iter()
+        let mut keys: Vec<String> = idx
+            .iter()
             .filter(|(p, _)| !p.is_empty())
             .map(|(p, _)| p[0].clone())
             .collect();
@@ -985,11 +1002,16 @@ impl FlatDoc {
         // A sub-table exists if any entry has this key as a path prefix
         // (meaning there are dotted keys or section keys under it)
         idx.iter().any(|(p, _)| p.len() >= 2 && p[0] == key)
-            || idx.iter().any(|(p, _)| p.len() == 1 && p[0] == key && self.is_value_table(key))
+            || idx
+                .iter()
+                .any(|(p, _)| p.len() == 1 && p[0] == key && self.is_value_table(key))
     }
 
     fn is_value_table(&self, key: &str) -> bool {
-        self.index.as_ref().unwrap().iter()
+        self.index
+            .as_ref()
+            .unwrap()
+            .iter()
             .filter(|(p, _)| p.len() == 1 && p[0] == key)
             .any(|(_, e)| {
                 let span = self.spans[e.value_idx];

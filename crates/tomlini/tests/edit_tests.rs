@@ -1,6 +1,6 @@
 //! Tests for SAX edit operations on FlatDoc.
 
-use tomlini::{parse, EditError};
+use tomlini::{EditError, parse};
 
 #[test]
 fn set_simple_value() {
@@ -13,7 +13,10 @@ fn set_simple_value() {
 fn set_value_in_table() {
     let mut doc = parse("[server]\nport = 8080\nhost = \"localhost\"\n").unwrap();
     doc.set(&["server", "port"], "9090").unwrap();
-    assert_eq!(doc.to_string(), "[server]\nport = 9090\nhost = \"localhost\"\n");
+    assert_eq!(
+        doc.to_string(),
+        "[server]\nport = 9090\nhost = \"localhost\"\n"
+    );
 }
 
 #[test]
@@ -28,7 +31,10 @@ fn set_preserves_comments() {
 #[test]
 fn set_not_found() {
     let mut doc = parse("port = 8080\n").unwrap();
-    assert!(matches!(doc.set(&["nonexistent"], "1"), Err(EditError::NotFound)));
+    assert!(matches!(
+        doc.set(&["nonexistent"], "1"),
+        Err(EditError::NotFound)
+    ));
 }
 
 #[test]
@@ -70,7 +76,10 @@ fn remove_key_from_table() {
 #[test]
 fn remove_not_found() {
     let mut doc = parse("port = 8080\n").unwrap();
-    assert!(matches!(doc.remove(&["nonexistent"]), Err(EditError::NotFound)));
+    assert!(matches!(
+        doc.remove(&["nonexistent"]),
+        Err(EditError::NotFound)
+    ));
 }
 
 #[test]
@@ -93,7 +102,8 @@ fn set_then_insert_then_remove() {
 
 #[test]
 fn set_preserves_surrounding_structure() {
-    let input = "[package]\nname = \"my-app\"\nversion = \"1.0\"\n\n[dependencies]\nserde = \"1.0\"\n";
+    let input =
+        "[package]\nname = \"my-app\"\nversion = \"1.0\"\n\n[dependencies]\nserde = \"1.0\"\n";
     let mut doc = parse(input).unwrap();
 
     doc.set(&["package", "version"], "\"2.0\"").unwrap();

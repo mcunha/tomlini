@@ -1,6 +1,6 @@
 //! Validation tests for tomlini.
 
-use tomlini::{ValidationMode, ValidationErrorKind};
+use tomlini::{ValidationErrorKind, ValidationMode};
 
 // ---------------------------------------------------------------------------
 // duplicate key detection
@@ -12,7 +12,9 @@ fn test_duplicate_key_rejected() {
     let errors = doc.validate(ValidationMode::Relaxed);
     assert!(!errors.is_empty(), "expected duplicate key error");
     assert!(
-        errors.iter().any(|e| matches!(e.kind, ValidationErrorKind::DuplicateKey)),
+        errors
+            .iter()
+            .any(|e| matches!(e.kind, ValidationErrorKind::DuplicateKey)),
         "expected DuplicateKey error, got: {:?}",
         errors.iter().map(|e| e.kind).collect::<Vec<_>>(),
     );
@@ -23,7 +25,9 @@ fn test_duplicate_key_within_table() {
     let mut doc = tomlini::parse("[table]\nkey = 1\nkey = 2\n").unwrap();
     let errors = doc.validate(ValidationMode::Relaxed);
     assert!(
-        errors.iter().any(|e| matches!(e.kind, ValidationErrorKind::DuplicateKey)),
+        errors
+            .iter()
+            .any(|e| matches!(e.kind, ValidationErrorKind::DuplicateKey)),
         "expected DuplicateKey error"
     );
 }
@@ -34,7 +38,9 @@ fn test_no_duplicate_distinct_tables() {
     let errors = doc.validate(ValidationMode::Relaxed);
     // Same key name in different tables is fine
     assert!(
-        !errors.iter().any(|e| matches!(e.kind, ValidationErrorKind::DuplicateKey)),
+        !errors
+            .iter()
+            .any(|e| matches!(e.kind, ValidationErrorKind::DuplicateKey)),
         "should not report duplicate for same key in different tables"
     );
 }
@@ -48,7 +54,9 @@ fn test_table_conflict() {
     let mut doc = tomlini::parse("a = 1\n[a.b]\nc = 2\n").unwrap();
     let errors = doc.validate(ValidationMode::Relaxed);
     assert!(
-        errors.iter().any(|e| matches!(e.kind, ValidationErrorKind::TableConflict)),
+        errors
+            .iter()
+            .any(|e| matches!(e.kind, ValidationErrorKind::TableConflict)),
         "expected TableConflict error, got: {:?}",
         errors.iter().map(|e| e.kind).collect::<Vec<_>>(),
     );
@@ -59,7 +67,9 @@ fn test_no_table_conflict_valid_nesting() {
     let mut doc = tomlini::parse("[a]\nb = 1\n[a.c]\nd = 2\n").unwrap();
     let errors = doc.validate(ValidationMode::Relaxed);
     assert!(
-        !errors.iter().any(|e| matches!(e.kind, ValidationErrorKind::TableConflict)),
+        !errors
+            .iter()
+            .any(|e| matches!(e.kind, ValidationErrorKind::TableConflict)),
         "should not report conflict for valid table nesting"
     );
 }
@@ -71,7 +81,9 @@ fn test_table_conflict_dotted_key() {
     let errors = doc.validate(ValidationMode::Relaxed);
     // The implicit table 'a' from dotted key vs explicit [a] table — this is a conflict
     assert!(
-        errors.iter().any(|e| matches!(e.kind, ValidationErrorKind::TableConflict)),
+        errors
+            .iter()
+            .any(|e| matches!(e.kind, ValidationErrorKind::TableConflict)),
         "expected TableConflict error for dotted key + table conflict"
     );
 }
@@ -82,24 +94,24 @@ fn test_table_conflict_dotted_key() {
 
 #[test]
 fn test_aot_ordering_non_consecutive() {
-    let mut doc = tomlini::parse(
-        "[[a]]\nx = 1\n[[b]]\ny = 2\n[[a]]\nz = 3\n"
-    ).unwrap();
+    let mut doc = tomlini::parse("[[a]]\nx = 1\n[[b]]\ny = 2\n[[a]]\nz = 3\n").unwrap();
     let errors = doc.validate(ValidationMode::Relaxed);
     assert!(
-        errors.iter().any(|e| matches!(e.kind, ValidationErrorKind::AotOrdering)),
+        errors
+            .iter()
+            .any(|e| matches!(e.kind, ValidationErrorKind::AotOrdering)),
         "expected AotOrdering error"
     );
 }
 
 #[test]
 fn test_aot_ordering_consecutive_ok() {
-    let mut doc = tomlini::parse(
-        "[[a]]\nx = 1\n[[a]]\ny = 2\n"
-    ).unwrap();
+    let mut doc = tomlini::parse("[[a]]\nx = 1\n[[a]]\ny = 2\n").unwrap();
     let errors = doc.validate(ValidationMode::Relaxed);
     assert!(
-        !errors.iter().any(|e| matches!(e.kind, ValidationErrorKind::AotOrdering)),
+        !errors
+            .iter()
+            .any(|e| matches!(e.kind, ValidationErrorKind::AotOrdering)),
         "consecutive AOT entries should be valid"
     );
 }
@@ -113,7 +125,8 @@ fn test_ini_comment_accepted() {
     // Semicolons are always treated as comments now
     let doc = tomlini::parse("; this is a comment\nkey = 1\n").unwrap();
     // Verify the comment span is there
-    let comment_spans: Vec<_> = doc.spans
+    let comment_spans: Vec<_> = doc
+        .spans
         .iter()
         .filter(|s| s.kind == tomlini::SpanKind::Comment)
         .collect();
@@ -139,7 +152,8 @@ fn test_semicolon_comment_mid_line() {
 #[test]
 fn test_hash_comment_still_works() {
     let doc = tomlini::parse("# this is a comment\nkey = 1\n").unwrap();
-    let comment_spans: Vec<_> = doc.spans
+    let comment_spans: Vec<_> = doc
+        .spans
         .iter()
         .filter(|s| s.kind == tomlini::SpanKind::Comment)
         .collect();
@@ -157,8 +171,13 @@ fn test_strict_rejects_control_chars() {
     let mut doc = tomlini::parse(input).unwrap();
     let errors = doc.validate(ValidationMode::Strict);
 
-    let has_control = errors.iter().any(|e| matches!(e.kind, ValidationErrorKind::ControlCharacter));
-    assert!(has_control, "expected ControlCharacter error for form feed (0x0C)");
+    let has_control = errors
+        .iter()
+        .any(|e| matches!(e.kind, ValidationErrorKind::ControlCharacter));
+    assert!(
+        has_control,
+        "expected ControlCharacter error for form feed (0x0C)"
+    );
 }
 
 #[test]
@@ -168,7 +187,9 @@ fn test_strict_bare_key_validation() {
     let mut doc = tomlini::parse("key! = 1\n").unwrap();
     let errors = doc.validate(ValidationMode::Strict);
     assert!(
-        errors.iter().any(|e| matches!(e.kind, ValidationErrorKind::InvalidKey)),
+        errors
+            .iter()
+            .any(|e| matches!(e.kind, ValidationErrorKind::InvalidKey)),
         "expected InvalidKey error for bare key with invalid char `!`, got: {:?}",
         errors.iter().map(|e| (e.kind, &e.msg)).collect::<Vec<_>>(),
     );
@@ -179,7 +200,9 @@ fn test_strict_valid_bare_key() {
     let mut doc = tomlini::parse("my_key = 1\n").unwrap();
     let errors = doc.validate(ValidationMode::Strict);
     assert!(
-        !errors.iter().any(|e| matches!(e.kind, ValidationErrorKind::InvalidKey)),
+        !errors
+            .iter()
+            .any(|e| matches!(e.kind, ValidationErrorKind::InvalidKey)),
         "valid bare key should not produce InvalidKey error"
     );
 }
@@ -193,7 +216,10 @@ fn test_lenient_accepts_everything() {
     // Lenient mode still catches duplicate keys/tables (always checked)
     let mut doc = tomlini::parse("[ok]\nkey=1\n[other]\nval=2\n").unwrap();
     let errors = doc.validate(ValidationMode::Lenient);
-    assert!(errors.is_empty(), "lenient mode should produce no errors for valid doc");
+    assert!(
+        errors.is_empty(),
+        "lenient mode should produce no errors for valid doc"
+    );
 }
 
 #[test]
@@ -204,7 +230,9 @@ fn test_relaxed_accepts_loose_keys() {
     let errors = doc.validate(ValidationMode::Relaxed);
     // No structural errors expected
     assert!(
-        !errors.iter().any(|e| matches!(e.kind, ValidationErrorKind::InvalidKey)),
+        !errors
+            .iter()
+            .any(|e| matches!(e.kind, ValidationErrorKind::InvalidKey)),
         "relaxed mode should not check key syntax"
     );
 }

@@ -1,7 +1,7 @@
 //! Property-based tests for `tomlini` parser and editor.
 
 use proptest::prelude::*;
-use tomlini::{SpanKind, parse, editor::Editor};
+use tomlini::{SpanKind, editor::Editor, parse};
 // ============================================================
 // TOML document generator — rejection-free
 // ============================================================
@@ -26,10 +26,15 @@ fn key() -> impl Strategy<Value = String> {
 fn float() -> impl Strategy<Value = String> {
     prop_oneof![
         (any::<f64>()).prop_map(|f| {
-            if f.is_nan() { "nan".into() }
-            else if f.is_infinite() && f > 0.0 { "+inf".into() }
-            else if f.is_infinite() { "-inf".into() }
-            else { format!("{f}") }
+            if f.is_nan() {
+                "nan".into()
+            } else if f.is_infinite() && f > 0.0 {
+                "+inf".into()
+            } else if f.is_infinite() {
+                "-inf".into()
+            } else {
+                format!("{f}")
+            }
         }),
         Just("3.14".to_string()),
         Just("1.5e10".to_string()),
@@ -71,20 +76,28 @@ fn array() -> impl Strategy<Value = String> {
             Just("\"a\"".to_string()),
         ],
         0..6,
-    ).prop_map(|vals| format!("[{}]", vals.join(", ")))
+    )
+    .prop_map(|vals| format!("[{}]", vals.join(", ")))
 }
 
 fn inline_table() -> impl Strategy<Value = String> {
     prop::collection::vec(
-        (bare_key(), prop_oneof![
-            (any::<i64>()).prop_map(|i| i.to_string()),
-            Just("true".to_string()),
-            Just("false".to_string()),
-            Just("\"v\"".to_string()),
-        ]),
+        (
+            bare_key(),
+            prop_oneof![
+                (any::<i64>()).prop_map(|i| i.to_string()),
+                Just("true".to_string()),
+                Just("false".to_string()),
+                Just("\"v\"".to_string()),
+            ],
+        ),
         0..4,
-    ).prop_map(|pairs| {
-        let inner: Vec<_> = pairs.into_iter().map(|(k, v)| format!("{k} = {v}")).collect();
+    )
+    .prop_map(|pairs| {
+        let inner: Vec<_> = pairs
+            .into_iter()
+            .map(|(k, v)| format!("{k} = {v}"))
+            .collect();
         format!("{{{}}}", inner.join(", "))
     })
 }
@@ -98,7 +111,9 @@ fn table_section() -> impl Strategy<Value = String> {
     let body = prop::collection::vec(kv_pair(), 0..5);
     (header, body).prop_map(|(h, pairs)| {
         let mut s = h;
-        for p in &pairs { s.push_str(p); }
+        for p in &pairs {
+            s.push_str(p);
+        }
         s.push('\n');
         s
     })
@@ -109,17 +124,16 @@ fn aot_section() -> impl Strategy<Value = String> {
     let body = prop::collection::vec(kv_pair(), 1..3);
     (header, body).prop_map(|(h, pairs)| {
         let mut s = h;
-        for p in &pairs { s.push_str(p); }
+        for p in &pairs {
+            s.push_str(p);
+        }
         s.push('\n');
         s
     })
 }
 
 fn comment_line() -> impl Strategy<Value = String> {
-    prop_oneof![
-        Just("# a comment\n".to_string()),
-        Just("#\n".to_string()),
-    ]
+    prop_oneof![Just("# a comment\n".to_string()), Just("#\n".to_string()),]
 }
 
 fn blank_line() -> impl Strategy<Value = String> {
@@ -229,7 +243,6 @@ fn edit_value() -> impl Strategy<Value = String> {
 fn edit_key() -> impl Strategy<Value = String> {
     "[a-zA-Z][a-zA-Z0-9_]{1,8}".prop_map(|s| s)
 }
-
 
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(2000))]

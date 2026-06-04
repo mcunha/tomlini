@@ -1,6 +1,6 @@
 //! Tests for the batch editor.
 
-use tomlini::{parse, EditError, editor::Editor, editor::BringAlong};
+use tomlini::{EditError, editor::BringAlong, editor::Editor, parse};
 
 // ============================================================
 // Read accessors
@@ -63,7 +63,11 @@ fn test_set_creates_valid_output() {
     editor.set("key", "\"new\"").commit(&mut doc).unwrap();
     // The output should parse successfully.
     let reparsed = parse(&doc.to_string());
-    assert!(reparsed.is_ok(), "set output should be valid TOML: {:?}", reparsed.err());
+    assert!(
+        reparsed.is_ok(),
+        "set output should be valid TOML: {:?}",
+        reparsed.err()
+    );
 }
 
 #[test]
@@ -83,7 +87,10 @@ fn test_set_nonexistent_key() {
 fn editor_insert_key() {
     let mut doc = parse("name = \"hello\"\n").unwrap();
     let mut editor = tomlini::editor::Editor::new();
-    editor.insert("", "version", "1.0").commit(&mut doc).unwrap();
+    editor
+        .insert("", "version", "1.0")
+        .commit(&mut doc)
+        .unwrap();
     assert!(doc.to_string().contains("version = 1.0"));
 }
 
@@ -91,7 +98,10 @@ fn editor_insert_key() {
 fn test_insert_into_empty_doc() {
     let mut doc = tomlini::FlatDoc::new();
     let mut editor = tomlini::editor::Editor::new();
-    editor.insert("", "key", "\"val\"").commit(&mut doc).unwrap();
+    editor
+        .insert("", "key", "\"val\"")
+        .commit(&mut doc)
+        .unwrap();
     assert!(doc.to_string().contains("key = \"val\""));
 }
 
@@ -116,7 +126,8 @@ fn test_insert_multiple() {
 fn editor_insert_with_comment() {
     let mut doc = parse("name = \"hello\"\n").unwrap();
     let mut editor = tomlini::editor::Editor::new();
-    editor.insert("", "version", "1.0")
+    editor
+        .insert("", "version", "1.0")
         .with_above_comment("The app version");
     editor.commit(&mut doc).unwrap();
     assert!(doc.to_string().contains("# The app version"));
@@ -126,7 +137,8 @@ fn editor_insert_with_comment() {
 fn test_insert_with_block_comment() {
     let mut doc = parse("name = \"hello\"\n").unwrap();
     let mut editor = tomlini::editor::Editor::new();
-    editor.insert("", "version", "1.0")
+    editor
+        .insert("", "version", "1.0")
         .with_block_comment(&["Copyright 2024", "All rights reserved"]);
     editor.commit(&mut doc).unwrap();
     let out = doc.to_string();
@@ -268,7 +280,10 @@ fn test_set_preserves_comment_before_key() {
     let mut editor = tomlini::editor::Editor::new();
     editor.set("port", "9090").commit(&mut doc).unwrap();
     let out = doc.to_string();
-    assert!(out.contains("# the port number"), "comment above key must survive: {out}");
+    assert!(
+        out.contains("# the port number"),
+        "comment above key must survive: {out}"
+    );
     assert!(out.contains("port = 9090"));
 }
 
@@ -276,10 +291,16 @@ fn test_set_preserves_comment_before_key() {
 fn test_insert_copies_neighbor_indent() {
     let mut doc = parse("[server]\n  host = \"localhost\"\n").unwrap();
     let mut editor = tomlini::editor::Editor::new();
-    editor.insert("server", "port", "8080").commit(&mut doc).unwrap();
+    editor
+        .insert("server", "port", "8080")
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
     // The inserted line should copy the 2-space indent.
-    assert!(out.contains("  port = 8080"), "expected 2-space indent on new key: {out}");
+    assert!(
+        out.contains("  port = 8080"),
+        "expected 2-space indent on new key: {out}"
+    );
 }
 
 #[test]
@@ -341,7 +362,6 @@ fn doc_is_table_inline() {
     assert!(doc.is_table("colors"));
 }
 
-
 // ============================================================
 // Array insert / remove
 // ============================================================
@@ -350,7 +370,10 @@ fn doc_is_table_inline() {
 fn test_array_insert() {
     let mut doc = parse("arr = [1, 2, 3]\n").unwrap();
     let mut editor = tomlini::editor::Editor::new();
-    editor.array_insert("arr", 1, "99").commit(&mut doc).unwrap();
+    editor
+        .array_insert("arr", 1, "99")
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
     assert!(out.contains("99"), "inserted value not found in: {out}");
     assert!(out.contains("1"));
@@ -418,8 +441,10 @@ fn test_array_remove_last() {
 fn test_replace_section() {
     let mut doc = parse("[server]\nhost = \"old\"\nport = 80\n").unwrap();
     let mut editor = tomlini::editor::Editor::new();
-    editor.replace_section("server", &[("host", "\"new\""), ("timeout", "30")])
-        .commit(&mut doc).unwrap();
+    editor
+        .replace_section("server", &[("host", "\"new\""), ("timeout", "30")])
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
     assert!(out.contains("[server]"), "header must survive: {out}");
     assert!(out.contains("host = \"new\""), "new host not found: {out}");
@@ -432,10 +457,15 @@ fn test_replace_section() {
 fn test_replace_section_new_section() {
     let mut doc = parse("root_key = 1\n").unwrap();
     let mut editor = tomlini::editor::Editor::new();
-    editor.replace_section("new_sec", &[("key", "\"val\"")])
-        .commit(&mut doc).unwrap();
+    editor
+        .replace_section("new_sec", &[("key", "\"val\"")])
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
-    assert!(out.contains("[new_sec]"), "new section header missing: {out}");
+    assert!(
+        out.contains("[new_sec]"),
+        "new section header missing: {out}"
+    );
     assert!(out.contains("key = \"val\""), "new key missing: {out}");
 }
 
@@ -454,7 +484,10 @@ fn test_clear_section() {
 fn test_rename_section() {
     let mut doc = parse("[old]\nkey = 1\n").unwrap();
     let mut editor = tomlini::editor::Editor::new();
-    editor.rename_section("old", "new").commit(&mut doc).unwrap();
+    editor
+        .rename_section("old", "new")
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
     assert!(out.contains("[new]"), "new name missing: {out}");
     assert!(!out.contains("[old]"), "old name should be gone: {out}");
@@ -476,27 +509,44 @@ fn test_rename_section_conflict() {
 
 #[test]
 fn test_aot_set() {
-    let input = "[[products]]\nname = \"apple\"\nprice = 5\n\n[[products]]\nname = \"banana\"\nprice = 3\n";
+    let input =
+        "[[products]]\nname = \"apple\"\nprice = 5\n\n[[products]]\nname = \"banana\"\nprice = 3\n";
     let mut doc = parse(input).unwrap();
     let mut editor = tomlini::editor::Editor::new();
-    editor.aot_set("products", 0, "price", "10").commit(&mut doc).unwrap();
+    editor
+        .aot_set("products", 0, "price", "10")
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
     // First product's price should be 10, second should remain 3
     assert!(out.contains("price = 10"), "first price not updated: {out}");
-    assert!(out.contains("price = 3"), "second price should remain: {out}");
+    assert!(
+        out.contains("price = 3"),
+        "second price should remain: {out}"
+    );
     assert!(out.contains("name = \"apple\""));
     assert!(out.contains("name = \"banana\""));
 }
 
 #[test]
 fn test_aot_set_second_entry() {
-    let input = "[[products]]\nname = \"apple\"\nprice = 5\n\n[[products]]\nname = \"banana\"\nprice = 3\n";
+    let input =
+        "[[products]]\nname = \"apple\"\nprice = 5\n\n[[products]]\nname = \"banana\"\nprice = 3\n";
     let mut doc = parse(input).unwrap();
     let mut editor = tomlini::editor::Editor::new();
-    editor.aot_set("products", 1, "name", "\"cherry\"").commit(&mut doc).unwrap();
+    editor
+        .aot_set("products", 1, "name", "\"cherry\"")
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
-    assert!(out.contains("name = \"apple\""), "first name should survive: {out}");
-    assert!(out.contains("name = \"cherry\""), "second name not updated: {out}");
+    assert!(
+        out.contains("name = \"apple\""),
+        "first name should survive: {out}"
+    );
+    assert!(
+        out.contains("name = \"cherry\""),
+        "second name not updated: {out}"
+    );
     assert!(!out.contains("\"banana\""));
 }
 
@@ -529,9 +579,15 @@ fn test_inline_insert() {
     let input = "key = {a = 1, b = 2}\n";
     let mut doc = parse(input).unwrap();
     let mut editor = tomlini::editor::Editor::new();
-    editor.inline_insert("key", "c", "3").commit(&mut doc).unwrap();
+    editor
+        .inline_insert("key", "c", "3")
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
-    assert!(out.contains("key = {a = 1, b = 2, c = 3}"), "unexpected output: {out}");
+    assert!(
+        out.contains("key = {a = 1, b = 2, c = 3}"),
+        "unexpected output: {out}"
+    );
 }
 
 #[test]
@@ -539,7 +595,10 @@ fn test_inline_insert_empty() {
     let input = "key = {}\n";
     let mut doc = parse(input).unwrap();
     let mut editor = tomlini::editor::Editor::new();
-    editor.inline_insert("key", "a", "1").commit(&mut doc).unwrap();
+    editor
+        .inline_insert("key", "a", "1")
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
     assert!(out.contains("key = {a = 1}"), "unexpected output: {out}");
 }
@@ -551,7 +610,10 @@ fn test_inline_remove() {
     let mut editor = tomlini::editor::Editor::new();
     editor.inline_remove("key", "b").commit(&mut doc).unwrap();
     let out = doc.to_string();
-    assert!(out.contains("key = {a = 1,c = 3}"), "unexpected output: {out}");
+    assert!(
+        out.contains("key = {a = 1,c = 3}"),
+        "unexpected output: {out}"
+    );
 }
 
 #[test]
@@ -575,8 +637,14 @@ fn test_promote_key_simple() {
     let mut editor = tomlini::editor::Editor::new();
     editor.promote_key("meta.base").commit(&mut doc).unwrap();
     let out = doc.to_string();
-    assert!(out.contains("base = \"my-base\""), "promoted key missing: {out}");
-    assert!(!out.contains("meta.base"), "dotted path still present: {out}");
+    assert!(
+        out.contains("base = \"my-base\""),
+        "promoted key missing: {out}"
+    );
+    assert!(
+        !out.contains("meta.base"),
+        "dotted path still present: {out}"
+    );
 }
 
 #[test]
@@ -598,7 +666,10 @@ fn test_promote_key_last_in_table() {
     let mut editor = tomlini::editor::Editor::new();
     editor.promote_key("meta.base").commit(&mut doc).unwrap();
     let out = doc.to_string();
-    assert!(out.contains("base = \"my-base\""), "promoted key missing: {out}");
+    assert!(
+        out.contains("base = \"my-base\""),
+        "promoted key missing: {out}"
+    );
 }
 
 #[test]
@@ -607,7 +678,10 @@ fn test_promote_key_with_fluent_handle() {
     let mut doc = parse(input).unwrap();
     doc.edit().promote_key("meta.base").commit().unwrap();
     let out = doc.to_string();
-    assert!(out.contains("base = \"my-base\""), "promoted key missing: {out}");
+    assert!(
+        out.contains("base = \"my-base\""),
+        "promoted key missing: {out}"
+    );
 }
 
 #[test]
@@ -629,7 +703,10 @@ fn test_move_key_create_new_section() {
     let input = "[meta]\nname = \"Test\"\n";
     let mut doc = parse(input).unwrap();
     let mut editor = tomlini::editor::Editor::new();
-    editor.move_key_create("meta.name", "game.name").commit(&mut doc).unwrap();
+    editor
+        .move_key_create("meta.name", "game.name")
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
     assert!(out.contains("[game]"), "new section header missing: {out}");
     assert!(out.contains("name = \"Test\""), "moved key missing: {out}");
@@ -641,7 +718,10 @@ fn test_move_key_create_existing_section() {
     let input = "[meta]\nname = \"Test\"\n[game]\nversion = 1\n";
     let mut doc = parse(input).unwrap();
     let mut editor = tomlini::editor::Editor::new();
-    editor.move_key_create("meta.name", "game.name").commit(&mut doc).unwrap();
+    editor
+        .move_key_create("meta.name", "game.name")
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
     assert!(out.contains("[game]"), "section missing: {out}");
     assert!(out.contains("name = \"Test\""), "moved key missing: {out}");
@@ -653,7 +733,10 @@ fn test_move_key_create_to_root() {
     let input = "[meta]\nname = \"Test\"\n";
     let mut doc = parse(input).unwrap();
     let mut editor = tomlini::editor::Editor::new();
-    editor.move_key_create("meta.name", "name").commit(&mut doc).unwrap();
+    editor
+        .move_key_create("meta.name", "name")
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
     assert!(out.contains("name = \"Test\""), "moved key missing: {out}");
 }
@@ -663,7 +746,10 @@ fn test_move_key_create_preserves_formatting() {
     let input = "[meta]\n# comment\nname = \"Test\"  # inline\n";
     let mut doc = parse(input).unwrap();
     let mut editor = tomlini::editor::Editor::new();
-    editor.move_key_create("meta.name", "game.name").commit(&mut doc).unwrap();
+    editor
+        .move_key_create("meta.name", "game.name")
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
     assert!(out.contains("# comment"), "above comment lost: {out}");
     assert!(out.contains("# inline"), "inline comment lost: {out}");
@@ -673,7 +759,10 @@ fn test_move_key_create_preserves_formatting() {
 fn test_move_key_create_with_fluent_handle() {
     let input = "[meta]\nname = \"Test\"\n";
     let mut doc = parse(input).unwrap();
-    doc.edit().move_key_create("meta.name", "game.name").commit().unwrap();
+    doc.edit()
+        .move_key_create("meta.name", "game.name")
+        .commit()
+        .unwrap();
     let out = doc.to_string();
     assert!(out.contains("[game]"), "new section header missing: {out}");
     assert!(out.contains("name = \"Test\""), "moved key missing: {out}");
@@ -686,10 +775,14 @@ fn test_move_key_create_with_fluent_handle() {
 #[test]
 fn test_reorder_root_scalars_before_tables() {
     // Scalars MUST come before tables in valid TOML
-    let input = "root = 1\nbase = \"my-base\"\nprofiles = [\"a\", \"b\"]\n[meta]\nkind = \"leaf\"\n";
+    let input =
+        "root = 1\nbase = \"my-base\"\nprofiles = [\"a\", \"b\"]\n[meta]\nkind = \"leaf\"\n";
     let mut doc = parse(input).unwrap();
     let mut editor = tomlini::editor::Editor::new();
-    editor.reorder_root(&["meta", "base", "profiles", "root"]).commit(&mut doc).unwrap();
+    editor
+        .reorder_root(&["meta", "base", "profiles", "root"])
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
     let meta_pos = out.find("[meta]").unwrap();
     let base_pos = out.find("base =").unwrap();
@@ -703,7 +796,10 @@ fn test_reorder_root_preserves_comments() {
     let input = "# top comment\nbase = \"my-base\"\n[meta]\nkind = \"leaf\"\n";
     let mut doc = parse(input).unwrap();
     let mut editor = tomlini::editor::Editor::new();
-    editor.reorder_root(&["meta", "base"]).commit(&mut doc).unwrap();
+    editor
+        .reorder_root(&["meta", "base"])
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
     assert!(out.contains("# top comment"), "top comment lost: {out}");
 }
@@ -714,7 +810,10 @@ fn test_reorder_root_noop() {
     let mut doc = parse(input).unwrap();
     let mut editor = tomlini::editor::Editor::new();
     // Already in this order — should be a no-op
-    editor.reorder_root(&["base", "mypackage"]).commit(&mut doc).unwrap();
+    editor
+        .reorder_root(&["base", "mypackage"])
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
     assert!(out.contains("base = \"my-base\""));
     assert!(out.contains("[mypackage]"));
@@ -730,7 +829,6 @@ fn test_reorder_root_fluent() {
     let base_pos = out.find("base =").unwrap();
     assert!(meta_pos < base_pos, "[meta] should be before base: {out}");
 }
-
 
 // ── reorder_root edge cases ───────────────────────────────────
 
@@ -748,7 +846,10 @@ fn test_reorder_root_entry_not_in_doc_is_skipped() {
     let mut doc = parse(input).unwrap();
     let mut editor = tomlini::editor::Editor::new();
     // "ghost" is not in the document — silently skipped. Listed entries keep.
-    editor.reorder_root(&["ghost", "base", "meta"]).commit(&mut doc).unwrap();
+    editor
+        .reorder_root(&["ghost", "base", "meta"])
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
     let base_pos = out.find("base =").unwrap();
     let meta_pos = out.find("[meta]").unwrap();
@@ -763,7 +864,10 @@ fn test_reorder_root_entry_in_doc_not_in_order_is_dropped() {
     // Only list "c" and "a" — "b" is omitted and should disappear
     editor.reorder_root(&["c", "a"]).commit(&mut doc).unwrap();
     let out = doc.to_string();
-    assert!(!out.contains("b ="), "\"b\" should be dropped when not in order list: {out}");
+    assert!(
+        !out.contains("b ="),
+        "\"b\" should be dropped when not in order list: {out}"
+    );
     assert!(out.contains("c ="), "\"c\" should be present: {out}");
     assert!(out.contains("a ="), "\"a\" should be present: {out}");
 }
@@ -773,7 +877,10 @@ fn test_reorder_root_table_only_document() {
     let input = "[z]\nk = 1\n[a]\nk = 2\n[m]\nk = 3\n";
     let mut doc = parse(input).unwrap();
     let mut editor = tomlini::editor::Editor::new();
-    editor.reorder_root(&["a", "m", "z"]).commit(&mut doc).unwrap();
+    editor
+        .reorder_root(&["a", "m", "z"])
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
     let a_pos = out.find("[a]").unwrap();
     let m_pos = out.find("[m]").unwrap();
@@ -797,10 +904,15 @@ fn test_reorder_root_preserves_inter_entry_comments() {
     let input = "base = \"my-base\"\n# comment before meta\n[meta]\nkind = \"leaf\"\n";
     let mut doc = parse(input).unwrap();
     let mut editor = tomlini::editor::Editor::new();
-    editor.reorder_root(&["meta", "base"]).commit(&mut doc).unwrap();
+    editor
+        .reorder_root(&["meta", "base"])
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
-    assert!(out.contains("# comment before meta"),
-        "comment between entries was dropped during reorder_root: {out}");
+    assert!(
+        out.contains("# comment before meta"),
+        "comment between entries was dropped during reorder_root: {out}"
+    );
 }
 
 #[test]
@@ -809,12 +921,20 @@ fn test_reorder_root_following_anchor_moves_comment_with_section() {
     let input = "base = \"my-base\"\n# comment for meta\n[meta]\nkind = \"leaf\"\n";
     let mut doc = parse(input).unwrap();
     let mut editor = tomlini::editor::Editor::new();
-    editor.reorder_root_bring(&["meta", "base"], tomlini::editor::BringAlong::COMMENTS_ABOVE).commit(&mut doc).unwrap();
+    editor
+        .reorder_root_bring(
+            &["meta", "base"],
+            tomlini::editor::BringAlong::COMMENTS_ABOVE,
+        )
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
     let comment_pos = out.find("# comment for meta").unwrap();
     let meta_pos = out.find("[meta]").unwrap();
-    assert!(comment_pos < meta_pos,
-        "comment should precede [meta] with Following anchor: {out}");
+    assert!(
+        comment_pos < meta_pos,
+        "comment should precede [meta] with Following anchor: {out}"
+    );
 }
 
 // ============================================================
@@ -855,10 +975,16 @@ build = \"echo hi\"
     // Dotted headers keep their full name as written
     let profiles_pos = out.find("[profiles.dev]").unwrap();
     assert!(base_pos < meta_pos, "[base] before [meta]: {out}");
-    assert!(meta_pos < profiles_pos, "[meta] before [profiles.dev]: {out}");
+    assert!(
+        meta_pos < profiles_pos,
+        "[meta] before [profiles.dev]: {out}"
+    );
     assert!(out.contains("name = \"my-project\""));
     assert!(out.contains("FOO = \"dev\""));
-    assert!(out.contains("# My project profiles"), "top comment lost: {out}");
+    assert!(
+        out.contains("# My project profiles"),
+        "top comment lost: {out}"
+    );
 }
 
 #[test]
@@ -883,14 +1009,18 @@ kind = \"leaf\"
     doc.edit()
         .promote_key("meta.base")
         .promote_key("meta.kind")
-        .commit().unwrap();
+        .commit()
+        .unwrap();
 
     // Step 2: verify promoted keys are at root
     assert!(doc.has("base"), "base should be at root after promote");
     assert!(doc.has("kind"), "kind should be at root after promote");
 
     // Step 3: reorder — scalars before tables, alphabetically
-    doc.edit().reorder_root(&["base", "kind", "meta"]).commit().unwrap();
+    doc.edit()
+        .reorder_root(&["base", "kind", "meta"])
+        .commit()
+        .unwrap();
 
     // Step 4: verify order
     let out = doc.to_string();
@@ -926,7 +1056,10 @@ fn test_move_key_to_root() {
     let input = "[server]\nport = 8080\n";
     let mut doc = parse(input).unwrap();
     let mut editor = tomlini::editor::Editor::new();
-    editor.move_key("server.port", "port").commit(&mut doc).unwrap();
+    editor
+        .move_key("server.port", "port")
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
     assert!(out.contains("port = 8080"), "moved key missing: {out}");
 }
@@ -951,7 +1084,10 @@ fn test_rename_key_simple() {
     let input = "old_name = 42\n";
     let mut doc = parse(input).unwrap();
     let mut editor = tomlini::editor::Editor::new();
-    editor.rename_key("old_name", "new_name").commit(&mut doc).unwrap();
+    editor
+        .rename_key("old_name", "new_name")
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
     assert!(!out.contains("old_name"), "old key still present: {out}");
     assert!(out.contains("new_name"), "new key missing: {out}");
@@ -963,7 +1099,10 @@ fn test_rename_key_in_table() {
     let input = "[server]\nhostname = \"old\"\nport = 8080\n";
     let mut doc = parse(input).unwrap();
     let mut editor = tomlini::editor::Editor::new();
-    editor.rename_key("server.hostname", "server.host").commit(&mut doc).unwrap();
+    editor
+        .rename_key("server.hostname", "server.host")
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
     assert!(!out.contains("hostname"), "old key still present: {out}");
     assert!(out.contains("host"), "new key missing: {out}");
@@ -975,7 +1114,10 @@ fn test_rename_key_preserves_value_formatting() {
     let input = "old_name = \"val\" # inline\n";
     let mut doc = parse(input).unwrap();
     let mut editor = tomlini::editor::Editor::new();
-    editor.rename_key("old_name", "new_name").commit(&mut doc).unwrap();
+    editor
+        .rename_key("old_name", "new_name")
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
     assert!(out.contains("# inline"), "inline comment lost: {out}");
 }
@@ -984,7 +1126,10 @@ fn test_rename_key_preserves_value_formatting() {
 fn test_rename_key_fluent() {
     let input = "old_name = 42\n";
     let mut doc = parse(input).unwrap();
-    doc.edit().rename_key("old_name", "new_name").commit().unwrap();
+    doc.edit()
+        .rename_key("old_name", "new_name")
+        .commit()
+        .unwrap();
     let out = doc.to_string();
     assert!(out.contains("new_name"), "new key missing: {out}");
 }
@@ -1012,7 +1157,11 @@ fn test_insert_section_idempotent() {
     editor.insert_section("mysection").commit(&mut doc).unwrap();
     // Should be a no-op — section already exists
     let out = doc.to_string();
-    assert_eq!(out.matches("[mysection]").count(), 1, "duplicate header: {out}");
+    assert_eq!(
+        out.matches("[mysection]").count(),
+        1,
+        "duplicate header: {out}"
+    );
 }
 
 #[test]
@@ -1033,7 +1182,10 @@ fn test_array_push_multiline() {
     let input = "hosts = [\n  \"a\",\n  \"b\",\n]\n";
     let mut doc = parse(input).unwrap();
     let mut editor = tomlini::editor::Editor::new();
-    editor.array_push("hosts", "\"c\"").commit(&mut doc).unwrap();
+    editor
+        .array_push("hosts", "\"c\"")
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
     assert!(out.contains("\"c\""), "new element missing: {out}");
     assert!(out.contains("\"a\""), "existing element lost: {out}");
@@ -1060,7 +1212,10 @@ fn test_array_set_last_element() {
     let input = "ports = [80, 443, 8080]\n";
     let mut doc = parse(input).unwrap();
     let mut editor = tomlini::editor::Editor::new();
-    editor.array_set("ports", 2, "9090").commit(&mut doc).unwrap();
+    editor
+        .array_set("ports", 2, "9090")
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
     assert!(out.contains("9090"), "new value missing: {out}");
 }
@@ -1073,9 +1228,15 @@ fn test_aot_push_adds_entry() {
     let input = "[[server]]\nhost = \"a\"\nport = 1\n[[server]]\nhost = \"b\"\nport = 2\n";
     let mut doc = parse(input).unwrap();
     let mut editor = tomlini::editor::Editor::new();
-    editor.aot_push("server", &[("host", "\"c\""), ("port", "3")]).commit(&mut doc).unwrap();
+    editor
+        .aot_push("server", &[("host", "\"c\""), ("port", "3")])
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
-    assert!(out.contains("host = \"c\""), "new entry host missing: {out}");
+    assert!(
+        out.contains("host = \"c\""),
+        "new entry host missing: {out}"
+    );
     assert!(out.contains("port = 3"), "new entry port missing: {out}");
 }
 
@@ -1084,10 +1245,16 @@ fn test_aot_push_first_entry() {
     let input = "[[server]]\nhost = \"a\"\nport = 1\n";
     let mut doc = parse(input).unwrap();
     let mut editor = tomlini::editor::Editor::new();
-    editor.aot_push("server", &[("host", "\"b\""), ("port", "2")]).commit(&mut doc).unwrap();
+    editor
+        .aot_push("server", &[("host", "\"b\""), ("port", "2")])
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
     let count = out.matches("[[server]]").count();
-    assert_eq!(count, 2, "expected 2 [[server]] entries, got {count}: {out}");
+    assert_eq!(
+        count, 2,
+        "expected 2 [[server]] entries, got {count}: {out}"
+    );
 }
 
 // ============================================================
@@ -1099,7 +1266,10 @@ fn test_aot_set_modifies_entry() {
     let input = "[[server]]\nhost = \"a\"\nport = 1\n[[server]]\nhost = \"b\"\nport = 2\n";
     let mut doc = parse(input).unwrap();
     let mut editor = tomlini::editor::Editor::new();
-    editor.aot_set("server", 0, "port", "9000").commit(&mut doc).unwrap();
+    editor
+        .aot_set("server", 0, "port", "9000")
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
     assert!(out.contains("port = 9000"), "modified value missing: {out}");
     assert!(out.contains("port = 2"), "second entry lost: {out}");
@@ -1115,9 +1285,19 @@ fn test_aot_remove_first_entry() {
     let mut editor = tomlini::editor::Editor::new();
     editor.aot_remove("server", 0).commit(&mut doc).unwrap();
     let out = doc.to_string();
-    assert!(!out.contains("host = \"a\""), "removed entry 'a' still present: {out}");
-    assert!(out.contains("host = \"b\""), "remaining entry 'b' lost: {out}");
-    assert_eq!(out.matches("[[server]]").count(), 1, "should have 1 [[server]] entry left: {out}");
+    assert!(
+        !out.contains("host = \"a\""),
+        "removed entry 'a' still present: {out}"
+    );
+    assert!(
+        out.contains("host = \"b\""),
+        "remaining entry 'b' lost: {out}"
+    );
+    assert_eq!(
+        out.matches("[[server]]").count(),
+        1,
+        "should have 1 [[server]] entry left: {out}"
+    );
 }
 
 #[test]
@@ -1127,8 +1307,14 @@ fn test_aot_remove_last_entry() {
     let mut editor = tomlini::editor::Editor::new();
     editor.aot_remove("server", 1).commit(&mut doc).unwrap();
     let out = doc.to_string();
-    assert!(out.contains("host = \"a\""), "remaining entry 'a' lost: {out}");
-    assert!(!out.contains("host = \"b\""), "removed entry 'b' still present: {out}");
+    assert!(
+        out.contains("host = \"a\""),
+        "remaining entry 'a' lost: {out}"
+    );
+    assert!(
+        !out.contains("host = \"b\""),
+        "removed entry 'b' still present: {out}"
+    );
 }
 
 #[test]
@@ -1138,23 +1324,34 @@ fn test_aot_remove_only_entry() {
     let mut editor = tomlini::editor::Editor::new();
     editor.aot_remove("server", 0).commit(&mut doc).unwrap();
     let out = doc.to_string();
-    assert!(!out.contains("[[server]]"), "removed entry still present: {out}");
+    assert!(
+        !out.contains("[[server]]"),
+        "removed entry still present: {out}"
+    );
 }
 
 #[test]
 fn test_aot_remove_out_of_bounds() {
     let input = "[[server]]\nhost = \"a\"\n";
     let mut doc = parse(input).unwrap();
-    let mut e = tomlini::editor::Editor::new(); e.aot_remove("server", 99);
-    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::InvalidPath));
+    let mut e = tomlini::editor::Editor::new();
+    e.aot_remove("server", 99);
+    assert!(matches!(
+        e.commit(&mut doc).unwrap_err(),
+        EditError::InvalidPath
+    ));
 }
 
 #[test]
 fn test_aot_remove_nonexistent() {
     let input = "x = 1\n";
     let mut doc = parse(input).unwrap();
-    let mut e = tomlini::editor::Editor::new(); e.aot_remove("nonexistent", 0);
-    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::InvalidPath));
+    let mut e = tomlini::editor::Editor::new();
+    e.aot_remove("nonexistent", 0);
+    assert!(matches!(
+        e.commit(&mut doc).unwrap_err(),
+        EditError::InvalidPath
+    ));
 }
 
 #[test]
@@ -1177,11 +1374,18 @@ fn test_chain_set_remove_insert_rename() {
         .remove("package.name")
         .insert("package", "license", "\"MIT\"")
         .rename_key("package.version", "package.ver")
-        .commit(&mut doc).unwrap();
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
     assert!(!out.contains("version"), "renamed key still present: {out}");
-    assert!(out.contains("ver = \"2.0\""), "renamed+set value wrong: {out}");
-    assert!(out.contains("license = \"MIT\""), "inserted key missing: {out}");
+    assert!(
+        out.contains("ver = \"2.0\""),
+        "renamed+set value wrong: {out}"
+    );
+    assert!(
+        out.contains("license = \"MIT\""),
+        "inserted key missing: {out}"
+    );
 }
 
 #[test]
@@ -1191,8 +1395,14 @@ fn test_chain_promote_then_reorder() {
     // Verify promote_key actually moves base to root
     doc.edit().promote_key("meta.base").commit().unwrap();
     let promoted = doc.to_string();
-    assert!(doc.has("base"), "promote_key failed: base not at root. Doc: {promoted}");
-    assert!(!doc.has("meta.base"), "promote_key failed: meta.base still exists. Doc: {promoted}");
+    assert!(
+        doc.has("base"),
+        "promote_key failed: base not at root. Doc: {promoted}"
+    );
+    assert!(
+        !doc.has("meta.base"),
+        "promote_key failed: meta.base still exists. Doc: {promoted}"
+    );
     // Then reorder
     doc.edit().reorder_root(&["base", "meta"]).commit().unwrap();
     let out = doc.to_string();
@@ -1210,7 +1420,10 @@ fn test_index_dotted_table_header() {
     let mut doc = parse(input).unwrap();
     // After parse: index is None. Trigger build via accessor.
     assert!(doc.has("profiles.dev.env"), "should find profiles.dev.env");
-    assert!(doc.has("profiles.dev.port"), "should find profiles.dev.port");
+    assert!(
+        doc.has("profiles.dev.port"),
+        "should find profiles.dev.port"
+    );
     assert!(!doc.has("profiles.env"), "should not find wrong path");
     // is_table on the first segment
     assert!(doc.is_table("profiles"), "profiles should be a table");
@@ -1223,8 +1436,14 @@ fn test_index_aot_and_dotted_mixed() {
     let mut doc = parse(input).unwrap();
     // AOT key is server (first segment), and sub-keys exist
     let keys = doc.keys();
-    assert!(keys.contains(&"server".to_string()), "server should be in keys: {keys:?}");
-    assert!(doc.has("server.http.enabled"), "server.http.enabled should exist");
+    assert!(
+        keys.contains(&"server".to_string()),
+        "server should be in keys: {keys:?}"
+    );
+    assert!(
+        doc.has("server.http.enabled"),
+        "server.http.enabled should exist"
+    );
     assert!(doc.is_table("server"), "server should be a table");
 }
 
@@ -1240,11 +1459,17 @@ fn test_move_key_bring_comments_above() {
     let input = "[a]\n# this describes k\nk = 1\nx = 2\n[b]\ny = 3\n";
     let mut doc = parse(input).unwrap();
     let mut editor = Editor::new();
-    editor.move_key_bring("a.k", "b.k", BringAlong::COMMENTS_ABOVE).commit(&mut doc).unwrap();
+    editor
+        .move_key_bring("a.k", "b.k", BringAlong::COMMENTS_ABOVE)
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
     let comment_pos = out.find("# this describes k").unwrap();
     let b_start = out.find("[b]").unwrap();
-    assert!(b_start < comment_pos, "comment should be inside [b] section after move: {out}");
+    assert!(
+        b_start < comment_pos,
+        "comment should be inside [b] section after move: {out}"
+    );
 }
 
 #[test]
@@ -1252,11 +1477,17 @@ fn test_move_key_bring_comments_below() {
     let input = "[a]\nk = 1\n# comment after k\nx = 2\n[b]\ny = 3\n";
     let mut doc = parse(input).unwrap();
     let mut editor = Editor::new();
-    editor.move_key_bring("a.k", "b.k", BringAlong::COMMENTS_BELOW).commit(&mut doc).unwrap();
+    editor
+        .move_key_bring("a.k", "b.k", BringAlong::COMMENTS_BELOW)
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
     let comment_pos = out.find("# comment after k").unwrap();
     let b_start = out.find("[b]").unwrap();
-    assert!(b_start < comment_pos, "comment below key should move to [b]: {out}");
+    assert!(
+        b_start < comment_pos,
+        "comment below key should move to [b]: {out}"
+    );
 }
 
 #[test]
@@ -1265,13 +1496,19 @@ fn test_move_key_bring_everything_above() {
     let input = "[a]\nx = 2\n\n# comment for k\nk = 1\n[b]\ny = 3\n";
     let mut doc = parse(input).unwrap();
     let mut editor = Editor::new();
-    editor.move_key_bring("a.k", "b.k", BringAlong::EVERYTHING_ABOVE).commit(&mut doc).unwrap();
+    editor
+        .move_key_bring("a.k", "b.k", BringAlong::EVERYTHING_ABOVE)
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
     assert!(out.contains("# comment for k"), "comment lost: {out}");
     // The blank line above the comment should also have moved — verify the comment is in [b]
     let comment_pos = out.find("# comment for k").unwrap();
     let b_pos = out.find("[b]").unwrap();
-    assert!(b_pos < comment_pos, "everything above should be in [b] section: {out}");
+    assert!(
+        b_pos < comment_pos,
+        "everything above should be in [b] section: {out}"
+    );
 }
 
 #[test]
@@ -1280,7 +1517,10 @@ fn test_move_key_bring_combo_above_and_below() {
     let mut doc = parse(input).unwrap();
     let mut editor = Editor::new();
     let bring = BringAlong::COMMENTS_ABOVE | BringAlong::COMMENTS_BELOW;
-    editor.move_key_bring("a.k", "b.k", bring).commit(&mut doc).unwrap();
+    editor
+        .move_key_bring("a.k", "b.k", bring)
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
     let above_pos = out.find("# above k").unwrap();
     let below_pos = out.find("# below k").unwrap();
@@ -1296,14 +1536,23 @@ fn test_promote_key_bring_comments_above() {
     let input = "[meta]\nname = \"proj\"\n# base configuration\nbase = \"my-base\"\n";
     let mut doc = parse(input).unwrap();
     let mut editor = Editor::new();
-    editor.promote_key_bring("meta.base", BringAlong::COMMENTS_ABOVE).commit(&mut doc).unwrap();
+    editor
+        .promote_key_bring("meta.base", BringAlong::COMMENTS_ABOVE)
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
-    assert!(out.contains("base = \"my-base\""), "promoted key missing: {out}");
+    assert!(
+        out.contains("base = \"my-base\""),
+        "promoted key missing: {out}"
+    );
     assert!(out.contains("# base configuration"), "comment lost: {out}");
     // Comment should be at root level, near base
     let comment_pos = out.find("# base configuration").unwrap();
     let base_pos = out.find("base =").unwrap();
-    assert!(comment_pos < base_pos, "comment should precede base at root: {out}");
+    assert!(
+        comment_pos < base_pos,
+        "comment should precede base at root: {out}"
+    );
 }
 
 #[test]
@@ -1311,12 +1560,18 @@ fn test_promote_key_bring_comments_below() {
     let input = "[meta]\nname = \"proj\"\nbase = \"my-base\"\n# note about base\n";
     let mut doc = parse(input).unwrap();
     let mut editor = Editor::new();
-    editor.promote_key_bring("meta.base", BringAlong::COMMENTS_BELOW).commit(&mut doc).unwrap();
+    editor
+        .promote_key_bring("meta.base", BringAlong::COMMENTS_BELOW)
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
     assert!(out.contains("# note about base"), "comment lost: {out}");
     let comment_pos = out.find("# note about base").unwrap();
     let base_pos = out.find("base =").unwrap();
-    assert!(base_pos < comment_pos, "comment should follow base at root: {out}");
+    assert!(
+        base_pos < comment_pos,
+        "comment should follow base at root: {out}"
+    );
 }
 
 // ── move_key_create_bring ───────────────────────────────────
@@ -1326,13 +1581,19 @@ fn test_move_key_create_bring_comments_above() {
     let input = "[a]\n# license info\nk = \"MIT\"\n";
     let mut doc = parse(input).unwrap();
     let mut editor = Editor::new();
-    editor.move_key_create_bring("a.k", "game.k", BringAlong::COMMENTS_ABOVE).commit(&mut doc).unwrap();
+    editor
+        .move_key_create_bring("a.k", "game.k", BringAlong::COMMENTS_ABOVE)
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
     assert!(out.contains("[game]"), "new section not created: {out}");
     assert!(out.contains("# license info"), "comment lost: {out}");
     let comment_pos = out.find("# license info").unwrap();
     let game_pos = out.find("[game]").unwrap();
-    assert!(game_pos < comment_pos, "comment should be inside [game]: {out}");
+    assert!(
+        game_pos < comment_pos,
+        "comment should be inside [game]: {out}"
+    );
 }
 
 // ── reorder_root_bring combinations ─────────────────────────
@@ -1343,10 +1604,16 @@ fn test_reorder_root_bring_combo() {
     let mut doc = parse(input).unwrap();
     let mut editor = Editor::new();
     let bring = BringAlong::COMMENTS_ABOVE | BringAlong::COMMENTS_BELOW;
-    editor.reorder_root_bring(&["meta", "base"], bring).commit(&mut doc).unwrap();
+    editor
+        .reorder_root_bring(&["meta", "base"], bring)
+        .commit(&mut doc)
+        .unwrap();
     let out = doc.to_string();
     assert!(out.contains("# comment for meta"), "comment lost: {out}");
     let comment_pos = out.find("# comment for meta").unwrap();
     let meta_pos = out.find("[meta]").unwrap();
-    assert!(comment_pos < meta_pos, "comment should precede [meta]: {out}");
+    assert!(
+        comment_pos < meta_pos,
+        "comment should precede [meta]: {out}"
+    );
 }

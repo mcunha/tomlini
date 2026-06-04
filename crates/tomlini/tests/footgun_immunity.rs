@@ -87,7 +87,10 @@ fn remove_preserves_adjacent_comments() {
     let out = doc.to_string();
     // The comment before version survives
     assert!(out.contains("# version comment"));
-    assert!(!out.contains("name = \"hello\""), "name kv removed: {out:?}");
+    assert!(
+        !out.contains("name = \"hello\""),
+        "name kv removed: {out:?}"
+    );
     assert!(out.contains("# name comment"), "comment survives: {out:?}");
 }
 
@@ -100,7 +103,6 @@ fn remove_preserves_adjacent_comments() {
 // Footgun 9: comments between keys owned by next key
 // ============================================================
 
-
 /// Verify that insert() does NOT copy the previous key's comment.
 /// It should only copy whitespace indentation.
 #[test]
@@ -112,7 +114,10 @@ fn insert_copies_indentation_not_comment() {
 
     // key2 gets the same indentation (2 spaces) but NOT the comment
     assert!(out.contains("  key2 = 2"), "indentation copied: {out:?}");
-    assert!(out.contains("# comment for key1"), "original comment preserved: {out:?}");
+    assert!(
+        out.contains("# comment for key1"),
+        "original comment preserved: {out:?}"
+    );
 
     // The comment should appear only once (not duplicated)
     let comment_count = out.matches("# comment for key1").count();

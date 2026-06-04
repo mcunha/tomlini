@@ -19,8 +19,8 @@ max_connections = 100
     // ── edit ───────────────────────────────────────────────
     doc.edit()
         .set("database.host", "\"db.example.com\"") // change host
-        .set("database.port", "6432")                // change port
-        .insert("database", "ssl", "true")           // add new key
+        .set("database.port", "6432") // change port
+        .insert("database", "ssl", "true") // add new key
         .commit()?;
 
     // ── output ─────────────────────────────────────────────

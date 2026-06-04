@@ -42,7 +42,9 @@ tls = true
 
 // ── tomlini ───────────────────────────────────────────────────
 
-fn tomlini_parse(src: &str) -> tomlini::FlatDoc { tomlini::parse(src).unwrap() }
+fn tomlini_parse(src: &str) -> tomlini::FlatDoc {
+    tomlini::parse(src).unwrap()
+}
 
 fn tomlini_set(doc: &mut tomlini::FlatDoc, path: &str, val: &str) {
     doc.edit().set(path, val).commit().unwrap();
@@ -59,7 +61,9 @@ fn tomlini_rename_section(doc: &mut tomlini::FlatDoc, from: &str, to: &str) {
 
 // ── toml_edit ─────────────────────────────────────────────────
 
-fn toml_edit_parse(src: &str) -> toml_edit::DocumentMut { src.parse().unwrap() }
+fn toml_edit_parse(src: &str) -> toml_edit::DocumentMut {
+    src.parse().unwrap()
+}
 
 fn toml_edit_set(doc: &mut toml_edit::DocumentMut, path: &str, val: &str) {
     doc[path] = toml_edit::value(val);
@@ -71,23 +75,25 @@ fn toml_edit_remove(doc: &mut toml_edit::DocumentMut, path: &str) {
     doc.remove(path);
 }
 fn toml_edit_rename_section(doc: &mut toml_edit::DocumentMut, from: &str, to: &str) {
-    if let Some(t) = doc.remove(from) { doc.insert(to, t); }
+    if let Some(t) = doc.remove(from) {
+        doc.insert(to, t);
+    }
 }
 
 // ── parse-only ────────────────────────────────────────────────
 
 #[divan::bench]
 fn parse_cargo_mid(bencher: divan::Bencher) {
-    bencher
-        .with_inputs(|| CARGO_MID)
-        .bench_values(|src| { let _ = tomlini_parse(src); });
+    bencher.with_inputs(|| CARGO_MID).bench_values(|src| {
+        let _ = tomlini_parse(src);
+    });
 }
 
 #[divan::bench]
 fn parse_cargo_mid_toml_edit(bencher: divan::Bencher) {
-    bencher
-        .with_inputs(|| CARGO_MID)
-        .bench_values(|src| { let _ = toml_edit_parse(src); });
+    bencher.with_inputs(|| CARGO_MID).bench_values(|src| {
+        let _ = toml_edit_parse(src);
+    });
 }
 
 // ── set (change a value) ─────────────────────────────────────
@@ -180,7 +186,8 @@ fn chain_set_insert_remove(bencher: divan::Bencher) {
             .set("package.version", "\"999.0.0\"")
             .insert("package", "homepage", "\"https://example.com\"")
             .remove("dependencies.serde_json")
-            .commit().unwrap();
+            .commit()
+            .unwrap();
         doc.to_string()
     });
 }
@@ -196,4 +203,6 @@ fn chain_set_insert_remove_toml_edit(bencher: divan::Bencher) {
     });
 }
 
-fn main() { divan::main() }
+fn main() {
+    divan::main()
+}

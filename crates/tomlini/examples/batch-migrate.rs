@@ -18,10 +18,10 @@ serde = "1"
     let mut doc = tomlini::parse(input)?;
 
     doc.edit()
-        .set("package.version", "\"1.0.0\"")       // bump version
-        .rename_key("package.name", "package.lib")  // rename field
-        .remove("dependencies.serde")               // drop dep
-        .insert("dependencies", "tokio", "1")      // add dep
+        .set("package.version", "\"1.0.0\"") // bump version
+        .rename_key("package.name", "package.lib") // rename field
+        .remove("dependencies.serde") // drop dep
+        .insert("dependencies", "tokio", "1") // add dep
         .commit()?;
 
     println!("{}", doc);
