@@ -1064,7 +1064,7 @@ impl Editor {
                         if end < doc.source.len() { end += 1; }
                         end as u32
                     } else if op.to_table.is_empty() {
-                        doc.spans.last().map(|s| s.end).unwrap_or(0)
+                        doc.source.len() as u32
                     } else if let Some((_open_idx, close_idx)) = find_section_header(&doc.spans, &doc.source, &op.to_table) {
                         let header_close = doc.spans[close_idx];
                         let mut pos = header_close.end as usize;
@@ -1097,7 +1097,9 @@ impl Editor {
                     if line_end < doc.source.len() { line_end += 1; }
                     let line_text = doc.source[line_start..line_end].to_string();
 
-                    // Insert at root: after the last root-level entry, or at EOF
+                    // Insert at root: after the last root-level scalar, or at EOF if
+                    // there are no root scalars.  Must go BEFORE any [table] headers
+                    // to avoid re-absorption by the TOML spec parser.
                     let root_entries: Vec<_> = index.iter()
                         .filter(|(p, _)| p.len() == 1)
                         .collect();
@@ -1108,10 +1110,8 @@ impl Editor {
                         if end < doc.source.len() { end += 1; }
                         end as u32
                     } else {
-                        doc.spans.last().map(|s| s.end).unwrap_or(0)
+                        0 // No root scalars — insert at top of document, before any [table]
                     };
-
-                    // Remove from sub-table, insert at root
                     resolved.push(Resolved { start: line_start as u32, end: line_end as u32, replacement: String::new() });
                     resolved.push(Resolved { start: insert_pos, end: insert_pos, replacement: line_text });
                 }
@@ -1151,8 +1151,8 @@ impl Editor {
                             if end < doc.source.len() { end += 1; }
                             end as u32
                         } else if op.to_table.is_empty() {
-                            // Moving to root, but no root entries exist yet — insert at start
-                            doc.spans.last().map(|s| s.end).unwrap_or(0)
+                            // Moving to root, but no root entries exist yet — insert at EOF
+                            doc.source.len() as u32
                         } else if let Some((_open_idx, close_idx)) = find_section_header(&doc.spans, &doc.source, &op.to_table) {
                             let header_close = doc.spans[close_idx];
                             let mut pos = header_close.end as usize;
@@ -1195,8 +1195,10 @@ impl Editor {
                 OpKind::ReorderRoot => {
                     let desired: Vec<&str> = op.prefix.as_deref().unwrap_or("").split(',').filter(|s| !s.is_empty()).collect();
 
-                    // Collect all root-level entries with their byte ranges
+                    // Collect all root-level blocks: scalar key-value entries AND table headers
                     let mut root_entries: Vec<(String, u32, u32)> = Vec::new();
+
+                    // 1. Scalar key-value entries from the index
                     for (path, entry) in index {
                         if path.len() == 1 {
                             let key_span = doc.spans[entry.key_start];
@@ -1209,36 +1211,69 @@ impl Editor {
                             root_entries.push((path[0].clone(), start as u32, end as u32));
                         }
                     }
-                    root_entries.sort_by_key(|(_, s, _)| *s);
-                    root_entries.dedup_by_key(|(n, _, _)| n.clone());
 
-                    // Build reordered source: splice everything out, then re-insert in desired order
-                    let insertion_point = if let Some((_, _, end)) = root_entries.last() {
-                        *end
-                    } else {
-                        continue;
-                    };
-
-                    // Remove all root entries from the source (in descending order)
-                    for (name, start, end) in root_entries.iter().rev() {
-                        resolved.push(Resolved { start: *start, end: *end, replacement: String::new() });
+                    // 2. Table headers: find all [section] headers at the root level
+                    //    (headers that don't have a parent table — single name like [meta])
+                    let mut table_starts: Vec<(String, u32)> = Vec::new(); // (name, header_start)
+                    let mut i = 0;
+                    while i < doc.spans.len() {
+                        if doc.spans[i].kind == SpanKind::ArrayOpen {
+                            let mut j = i + 1;
+                            let mut parts: Vec<String> = Vec::new();
+                            while j < doc.spans.len() {
+                                match doc.spans[j].kind {
+                                    SpanKind::BareKey | SpanKind::BasicString | SpanKind::LiteralString => {
+                                        parts.push(edit::clean_key_span(&doc.source, &doc.spans[j]).to_string());
+                                        j += 1;
+                                    }
+                                    SpanKind::Dot => { j += 1; }
+                                    SpanKind::ArrayClose => { j += 1; break; }
+                                    _ => break,
+                                }
+                            }
+                            if parts.len() == 1 {
+                                table_starts.push((parts[0].clone(), doc.spans[i].start));
+                            }
+                        }
+                        i += 1;
                     }
 
-                    // Re-insert in desired order at the end of the document
+                    // 3. Merge scalars and tables into ordered blocks, computing section end
+                    //    for each table as the start of the next root entry (or EOF).
+                    let mut all_starts: Vec<(String, u32, bool)> = Vec::new(); // (name, start, is_table)
+                    for (name, start, _) in &root_entries {
+                        all_starts.push((name.clone(), *start, false));
+                    }
+                    for (name, start) in &table_starts {
+                        all_starts.push((name.clone(), *start, true));
+                    }
+                    all_starts.sort_by_key(|(_, s, _)| *s);
+
+                    root_entries.clear();
+                    for idx in 0..all_starts.len() {
+                        let (name, start, is_table) = &all_starts[idx];
+                        let end = if idx + 1 < all_starts.len() {
+                            all_starts[idx + 1].1 // end = start of next entry
+                        } else {
+                            doc.source.len() as u32
+                        };
+                        root_entries.push((name.clone(), *start, end));
+                    }
+
+                    // Find the span covering all root entries
+                    let block_start = root_entries.first().map(|(_, s, _)| *s).unwrap_or(0);
+                    let block_end = root_entries.last().map(|(_, _, e)| *e).unwrap_or(0);
+
+                    // Build reordered text from desired order
                     let mut new_text = String::new();
-                    for desired_name in &desired {
-                        if let Some((_, _, _)) = root_entries.iter().find(|(n, _, _)| n == *desired_name) {
-                            // Entry exists - we'll insert it via a separate splice
-                        }
-                    }
-                    // For now: just push all root text as one replacement at the insertion point
-                    for name in desired {
+                    for name in &desired {
                         if let Some((_, start, end)) = root_entries.iter().find(|(n, _, _)| n == name) {
-                            let text = doc.source[*start as usize..*end as usize].to_string();
-                            new_text.push_str(&text);
+                            new_text.push_str(&doc.source[*start as usize..*end as usize]);
                         }
                     }
-                    resolved.push(Resolved { start: insertion_point, end: insertion_point, replacement: new_text });
+
+                    // Remove the entire root block and insert reordered text
+                    resolved.push(Resolved { start: block_start, end: block_end, replacement: new_text });
                 }
             }
         }
@@ -1265,13 +1300,21 @@ impl Editor {
             span.start = (span.start as i32 + delta) as u32;
             span.end = (span.end as i32 + delta) as u32;
         }
-        // Index is still valid — span indices haven't changed, only byte offsets.
+        // Rebuild index — byte-offset-only adjustment is insufficient for
+        // Re-parse: span delta pass can't track relocation from move/promote ops.
+        // Re-parsing gives us accurate spans aligned with the new source.
+        match crate::parse(&doc.source) {
+            Ok(reparsed) => {
+                doc.spans = reparsed.spans;
+                doc.index = None; // let lazy builder rebuild
+            }
+            // If the edited source is somehow unparseable, keep old spans.
+            // This should never happen for valid mutations of valid input.
+            Err(_) => {}
+        }
         self.ops.clear();
         Ok(())
     }
-    // ---- Array operations ----
-
-    /// Append a value to an array at `path`.
     pub fn array_push(&mut self, path: &str, value: &str) -> &mut Self {
         let (table, key) = split_path(path);
         self.ops.push(Op {

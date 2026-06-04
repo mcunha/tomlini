@@ -678,3 +678,293 @@ fn test_move_key_create_with_fluent_handle() {
     assert!(out.contains("[game]"), "new section header missing: {out}");
     assert!(out.contains("name = \"Test\""), "moved key missing: {out}");
 }
+
+// ============================================================
+// reorder_root
+// ============================================================
+
+#[test]
+fn test_reorder_root_scalars_before_tables() {
+    // Scalars MUST come before tables in valid TOML
+    let input = "root = 1\nbase = \"my-base\"\nprofiles = [\"a\", \"b\"]\n[meta]\nkind = \"leaf\"\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = tomlini::editor::Editor::new();
+    editor.reorder_root(&["meta", "base", "profiles", "root"]).commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    let meta_pos = out.find("[meta]").unwrap();
+    let base_pos = out.find("base =").unwrap();
+    let prof_pos = out.find("profiles =").unwrap();
+    assert!(meta_pos < base_pos, "[meta] should be before base: {out}");
+    assert!(base_pos < prof_pos, "base should be before profiles: {out}");
+}
+
+#[test]
+fn test_reorder_root_preserves_comments() {
+    let input = "# top comment\nbase = \"my-base\"\n[meta]\nkind = \"leaf\"\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = tomlini::editor::Editor::new();
+    editor.reorder_root(&["meta", "base"]).commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    assert!(out.contains("# top comment"), "top comment lost: {out}");
+}
+
+#[test]
+fn test_reorder_root_noop() {
+    let input = "base = \"my-base\"\n[mypackage]\nname = \"mypackage\"\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = tomlini::editor::Editor::new();
+    // Already in this order — should be a no-op
+    editor.reorder_root(&["base", "mypackage"]).commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    assert!(out.contains("base = \"my-base\""));
+    assert!(out.contains("[mypackage]"));
+}
+
+#[test]
+fn test_reorder_root_fluent() {
+    let input = "base = \"my-base\"\n[meta]\nkind = \"leaf\"\n";
+    let mut doc = parse(input).unwrap();
+    doc.edit().reorder_root(&["meta", "base"]).commit().unwrap();
+    let out = doc.to_string();
+    let meta_pos = out.find("[meta]").unwrap();
+    let base_pos = out.find("base =").unwrap();
+    assert!(meta_pos < base_pos, "[meta] should be before base: {out}");
+}
+
+// ============================================================
+// ============================================================
+
+#[test]
+fn test_move_key_cross_table() {
+    let input = "[a]\nkey = 1\n[b]\nother = 2\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = tomlini::editor::Editor::new();
+    editor.move_key("a.key", "b.key").commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    assert!(out.contains("[b]"), "target section missing: {out}");
+    assert!(out.contains("key = 1"), "moved key missing from [b]: {out}");
+    assert!(out.contains("other = 2"), "existing key lost: {out}");
+}
+
+#[test]
+fn test_move_key_to_root() {
+    let input = "[server]\nport = 8080\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = tomlini::editor::Editor::new();
+    editor.move_key("server.port", "port").commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    assert!(out.contains("port = 8080"), "moved key missing: {out}");
+}
+
+#[test]
+fn test_move_key_preserves_formatting() {
+    let input = "[a]\n# above\nkey = \"val\"  # inline\n[b]\nother = 2\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = tomlini::editor::Editor::new();
+    editor.move_key("a.key", "b.key").commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    assert!(out.contains("# above"), "above comment lost: {out}");
+    assert!(out.contains("# inline"), "inline comment lost: {out}");
+}
+
+// ============================================================
+// rename_key
+// ============================================================
+
+#[test]
+fn test_rename_key_simple() {
+    let input = "old_name = 42\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = tomlini::editor::Editor::new();
+    editor.rename_key("old_name", "new_name").commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    assert!(!out.contains("old_name"), "old key still present: {out}");
+    assert!(out.contains("new_name"), "new key missing: {out}");
+    assert!(out.contains("42"), "value lost: {out}");
+}
+
+#[test]
+fn test_rename_key_in_table() {
+    let input = "[server]\nhostname = \"old\"\nport = 8080\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = tomlini::editor::Editor::new();
+    editor.rename_key("server.hostname", "server.host").commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    assert!(!out.contains("hostname"), "old key still present: {out}");
+    assert!(out.contains("host"), "new key missing: {out}");
+    assert!(out.contains("port = 8080"), "sibling key lost: {out}");
+}
+
+#[test]
+fn test_rename_key_preserves_value_formatting() {
+    let input = "old_name = \"val\" # inline\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = tomlini::editor::Editor::new();
+    editor.rename_key("old_name", "new_name").commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    assert!(out.contains("# inline"), "inline comment lost: {out}");
+}
+
+#[test]
+fn test_rename_key_fluent() {
+    let input = "old_name = 42\n";
+    let mut doc = parse(input).unwrap();
+    doc.edit().rename_key("old_name", "new_name").commit().unwrap();
+    let out = doc.to_string();
+    assert!(out.contains("new_name"), "new key missing: {out}");
+}
+
+// ============================================================
+// insert_section
+// ============================================================
+
+#[test]
+fn test_insert_section_creates_header() {
+    let input = "root = 1\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = tomlini::editor::Editor::new();
+    editor.insert_section("mysection").commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    assert!(out.contains("[mysection]"), "section header missing: {out}");
+    assert!(out.contains("root = 1"), "existing key lost: {out}");
+}
+
+#[test]
+fn test_insert_section_idempotent() {
+    let input = "[mysection]\nkey = 1\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = tomlini::editor::Editor::new();
+    editor.insert_section("mysection").commit(&mut doc).unwrap();
+    // Should be a no-op — section already exists
+    let out = doc.to_string();
+    assert_eq!(out.matches("[mysection]").count(), 1, "duplicate header: {out}");
+}
+
+#[test]
+fn test_insert_section_into_empty() {
+    let mut doc = tomlini::FlatDoc::new();
+    let mut editor = tomlini::editor::Editor::new();
+    editor.insert_section("mysection").commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    assert_eq!(out, "[mysection]\n");
+}
+
+// ============================================================
+// array_push multiline
+// ============================================================
+
+#[test]
+fn test_array_push_multiline() {
+    let input = "hosts = [\n  \"a\",\n  \"b\",\n]\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = tomlini::editor::Editor::new();
+    editor.array_push("hosts", "\"c\"").commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    assert!(out.contains("\"c\""), "new element missing: {out}");
+    assert!(out.contains("\"a\""), "existing element lost: {out}");
+    assert!(out.contains("\"b\""), "existing element lost: {out}");
+}
+
+// ============================================================
+// array_set
+// ============================================================
+
+#[test]
+fn test_array_set_first_element() {
+    let input = "ports = [80, 443, 8080]\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = tomlini::editor::Editor::new();
+    editor.array_set("ports", 0, "22").commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    assert!(out.contains("22"), "new value missing: {out}");
+    assert!(!out.contains("80,"), "old value '80,' still present: {out}");
+}
+
+#[test]
+fn test_array_set_last_element() {
+    let input = "ports = [80, 443, 8080]\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = tomlini::editor::Editor::new();
+    editor.array_set("ports", 2, "9090").commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    assert!(out.contains("9090"), "new value missing: {out}");
+}
+// ============================================================
+// aot_push
+// ============================================================
+
+#[test]
+fn test_aot_push_adds_entry() {
+    let input = "[[server]]\nhost = \"a\"\nport = 1\n[[server]]\nhost = \"b\"\nport = 2\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = tomlini::editor::Editor::new();
+    editor.aot_push("server", &[("host", "\"c\""), ("port", "3")]).commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    assert!(out.contains("host = \"c\""), "new entry host missing: {out}");
+    assert!(out.contains("port = 3"), "new entry port missing: {out}");
+}
+
+#[test]
+fn test_aot_push_first_entry() {
+    let input = "[[server]]\nhost = \"a\"\nport = 1\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = tomlini::editor::Editor::new();
+    editor.aot_push("server", &[("host", "\"b\""), ("port", "2")]).commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    let count = out.matches("[[server]]").count();
+    assert_eq!(count, 2, "expected 2 [[server]] entries, got {count}: {out}");
+}
+
+// ============================================================
+// aot_set
+// ============================================================
+
+#[test]
+fn test_aot_set_modifies_entry() {
+    let input = "[[server]]\nhost = \"a\"\nport = 1\n[[server]]\nhost = \"b\"\nport = 2\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = tomlini::editor::Editor::new();
+    editor.aot_set("server", 0, "port", "9000").commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    assert!(out.contains("port = 9000"), "modified value missing: {out}");
+    assert!(out.contains("port = 2"), "second entry lost: {out}");
+}
+
+// ============================================================
+// Chain / combinations
+// ============================================================
+
+#[test]
+fn test_chain_set_remove_insert_rename() {
+    let input = "[package]\nname = \"old\"\nversion = \"1.0\"\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = tomlini::editor::Editor::new();
+    editor
+        .set("package.version", "\"2.0\"")
+        .remove("package.name")
+        .insert("package", "license", "\"MIT\"")
+        .rename_key("package.version", "package.ver")
+        .commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    assert!(!out.contains("name"), "removed key still present: {out}");
+    assert!(!out.contains("version"), "renamed key still present: {out}");
+    assert!(out.contains("ver = \"2.0\""), "renamed+set value wrong: {out}");
+    assert!(out.contains("license = \"MIT\""), "inserted key missing: {out}");
+}
+
+#[test]
+fn test_chain_promote_then_reorder() {
+    let input = "[meta]\nbase = \"my-base\"\nkind = \"leaf\"\n";
+    let mut doc = parse(input).unwrap();
+    // Verify promote_key actually moves base to root
+    doc.edit().promote_key("meta.base").commit().unwrap();
+    let promoted = doc.to_string();
+    assert!(doc.has("base"), "promote_key failed: base not at root. Doc: {promoted}");
+    assert!(!doc.has("meta.base"), "promote_key failed: meta.base still exists. Doc: {promoted}");
+    // Then reorder
+    doc.edit().reorder_root(&["base", "meta"]).commit().unwrap();
+    let out = doc.to_string();
+    let base_pos = out.find("base =").unwrap();
+    let meta_pos = out.find("[meta]").unwrap();
+    assert!(base_pos < meta_pos, "base should be before [meta]: {out}");
+}
