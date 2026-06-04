@@ -51,12 +51,46 @@
 //! 59.5 µs). Batch edits are **2–3× faster** than equivalent `toml_edit`
 //! operations. See `crates/benchmarks/` for details.
 //!
-//! ## Footgun-free editing
+//! ## Format preservation
 //!
-//! `toml_edit` has [28 documented footguns](https://github.com/toml-rs/toml/issues)
-//! where formatting is silently destroyed. `tomlini` has zero — every API
-//! path preserves comments, whitespace, and key order unless explicitly
-//! overridden with formatting modifiers.
+//! Every edit operation preserves comments, whitespace, and formatting
+//! unless explicitly overridden.  We test for these invariants across
+//! all 22 edit operations:
+//!
+//! - Comments between keys survive insertions and removals
+//! - Inline comments on modified lines stay in place
+//! - Key formatting (quoted vs bare, dotted vs flat) is never altered
+//! - Value formatting (hex integers, multi-line strings, literal vs basic)
+//!   passes through unchanged
+//! - Blank-line separators between sections are maintained
+//! - Indentation of new keys copies the neighbor's indentation
+//! - Removing the last key in a section cleans up trailing whitespace
+//! - Dotted-key headers like `[profiles.dev]` survive reordering intact
+//! - Comments above keys move with the key when `BringAlong` flags are used
+//!
+//! These invariants are verified by **11 footgun immunity tests**
+//! and **8 proptest fuzzers** that generate random documents and
+//! random edit sequences, asserting that the editor never panics and
+//! that successful commits produce re-parseable output.
+//!
+//! ## Movement & comment control
+//!
+//! [`BringAlong`] bitflags let you control what adjacent text travels
+//! with a key or section when it moves:
+//!
+//! ```ignore
+//! use tomlini::editor::BringAlong;
+//!
+//! // Move a key, bringing the comment above it
+//! doc.edit().move_key_bring("a.k", "b.k", BringAlong::COMMENTS_ABOVE).commit()?;
+//!
+//! // Promote to root, bringing comments on both sides
+//! doc.edit().promote_key_bring("meta.base",
+//!     BringAlong::COMMENTS_ABOVE | BringAlong::COMMENTS_BELOW).commit()?;
+//!
+//! // Reorder root entries, keeping section-preceding comments with their section
+//! doc.edit().reorder_root_bring(&["base", "meta"], BringAlong::COMMENTS_ABOVE).commit()?;
+//! ```
 //!
 //! ## Acknowledgments
 //!
@@ -69,8 +103,6 @@
 //!
 //! `tomlini` parses INI-style configs out of the box — `;` comments, bare
 //! values, `=` separators. No special mode needed: `tomlini::parse(ini_str)`.
-//! Use [`ValidationMode::Relaxed`] to validate structural rules while
-//! accepting INI conventions.
 //!
 //! ## Validation modes
 //!
@@ -82,57 +114,17 @@
 //! doc.validate(ValidationMode::Strict);    // full TOML 1.1.0 spec
 //! ```
 //!
-//! ## Reordering
-//!
-//! The `reorder_root` primitive reorders root-level entries while preserving
-//! comments, whitespace, and key formatting. Useful for formatters like
-//! `pont fmt` that enforce "scalars before tables":
-//!
-//! ```ignore
-//! let keys = doc.keys();
-//! // Compute desired order
-//! doc.edit()
-//!     .reorder_root(&keys)
-//!     .rename_section("old-name", "new-name")  // optional
-//!     .commit()?;
-//! ```
-//!
 //! ## Container editing
 //!
-//! Arrays, inline tables, and array-of-tables are first-class edit targets,
-//! alongside section-level primitives for self-healing and auto-creation:
+//! Arrays, inline tables, and array-of-tables are first-class edit targets:
 //!
 //! ```ignore
 //! doc.edit()
-//!     .promote_key("meta.base")                        // move to root
-//!     .move_key_create("meta.name", "game.name")       // auto-create [game]
-//!     .array_push("allowed-hosts", "\"10.0.0.3\"")
-//!     .inline_set("colors", "red", "\"#cc0000\"")
-//!     .aot_push("backend", &[("host", "\"10.0.0.3\""), ("port", "9001")])
+//!     .array_push("hosts", "\"10.0.0.3\"")
+//!     .inline_set("headers", "content-type", "\"text/html\"")
+//!     .aot_push("backend", &[("host", "\"10.0.0.4\""), ("port", "9000")])
 //!     .aot_remove("backend", 0)
 //!     .commit()?;
-//! ```
-//!
-//! ## Comment control
-//!
-//! [`BringAlong`] flags let you control what adjacent text moves with a key
-//! or section during relocation.  Combine flags with `|`:<｜end▁of▁thinking｜>
-//!
-//! [`BringAlong`] flags let you control what adjacent text moves with a key
-//! or section during relocation.  Combine flags with `|`:
-//!
-//! ```ignore
-//! use tomlini::editor::BringAlong;
-//!
-//! // Bring comment lines directly above the key
-//! doc.edit().move_key_bring("a.k", "b.k", BringAlong::COMMENTS_ABOVE).commit()?;
-//!
-//! // Bring comments on both sides, plus blank lines above
-//! let bring = BringAlong::EVERYTHING_ABOVE | BringAlong::COMMENTS_BELOW;
-//! doc.edit().promote_key_bring("meta.base", bring).commit()?;
-//!
-//! // Reorder root entries, bringing comments above each section
-//! doc.edit().reorder_root_bring(&["base", "meta"], BringAlong::COMMENTS_ABOVE).commit()?;
 //! ```
 //!
 //! ## Core-only usage
