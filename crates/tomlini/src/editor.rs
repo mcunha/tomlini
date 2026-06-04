@@ -1154,10 +1154,6 @@ impl Editor {
                     let mut line_end = value_span.end as usize;
                     while line_end < doc.source.len() && doc.source.as_bytes()[line_end] != b'\n' { line_end += 1; }
                     if line_end < doc.source.len() { line_end += 1; }
-                    let mut line_end = value_span.end as usize;
-                    while line_end < doc.source.len() && doc.source.as_bytes()[line_end] != b'\n' { line_end += 1; }
-                    if line_end < doc.source.len() { line_end += 1; }
-
                     // Extend boundaries based on BringAlong flags
                     let bring = op.suffix.as_deref()
                         .and_then(|s| s.parse::<u8>().ok())

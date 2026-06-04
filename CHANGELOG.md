@@ -19,20 +19,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 272/272 valid TOML decoder tests pass (toml-test compliance), 218 encoder tests pass.
 
 #### Editor (batch mutation)
-- 21 `OpKind` variants providing a complete editing surface:
+- 22 `OpKind` variants providing a complete editing surface:
   - **Scalar**: `Set`, `Insert`, `Remove`
   - **Section**: `InsertSection`, `ReplaceSection`, `ClearSection`, `RenameSection`
   - **Key**: `RenameKey`, `MoveKey`, `PromoteKey`, `MoveKeyCreate`
   - **Array**: `ArrayPush`, `ArraySet`, `ArrayInsert`, `ArrayRemove`
-  - **AOT**: `AotPush`, `AotSet`
+  - **AOT**: `AotPush`, `AotSet`, `AotRemove`
   - **Inline table**: `InlineSet`, `InlineInsert`, `InlineRemove`
   - **Reorder**: `ReorderRoot`
 - `Editor` struct — accumulate operations, commit in one pass.
 - `EditorHandle` — fluent API via `doc.edit().op1().op2().commit()?`.
-- `reorder_root(&order)` — reorder root-level entries while preserving comments, whitespace, and formatting. Handles both scalars and table headers (including dotted names like `[profiles.dev]`).
-- `promote_key(from)` — self-healing primitive: extract a key from a sub-table back to document root.
-- `move_key_create(from, to)` — like `move_key` but auto-creates the destination table if it doesn't exist.
-- Comment-awareness: `with_prefix`, `with_above_comment`, `with_block_comment`.
+- **`BringAlong` bitflags** — composable flags (`COMMENTS_ABOVE`, `COMMENTS_BELOW`, `EVERYTHING_ABOVE`, `EVERYTHING_BELOW`) controlling what adjacent text moves with a key or section during relocation. Combine with `|`.
+- `reorder_root(&order)` / `reorder_root_bring(&order, bring)` — reorder root-level entries while preserving comments, whitespace, and formatting. Handles both scalars and table headers (including dotted names like `[profiles.dev]`).
+- `move_key_bring(from, to, bring)` — move a key between sections with comment control.
+- `promote_key(from)` / `promote_key_bring(from, bring)` — self-healing primitive: extract a key from a sub-table back to document root.
+- `move_key_create(from, to)` / `move_key_create_bring(from, to, bring)` — like `move_key` but auto-creates the destination table.
+- Comment-awareness: `with_prefix`, `with_above_comment`, `with_block_comment`, `with_suffix`.
 
 #### Validation
 - Three-mode validation: `Lenient` (accept all), `Relaxed` (TOML rules + INI extensions), `Strict` (full TOML 1.1.0 spec).
@@ -52,14 +54,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Deserialize TOML into `Deserialize` types via `from_str()`.
 - Supports: scalars, tables, arrays, inline tables, array-of-tables, datetimes (via `toml_datetime`).
 - Feature-gated: `std` and `alloc` features chain through to `tomlini`.
-
 #### Testing
-- **282 tests**: 75 coverage, 12 edit, 47 negative editor, 95 positive editor, 11 footgun immunity, 8 proptest, 5 error proptest, 16 validation, 13 serde.
+- **290 tests**: 75 coverage, 12 edit, 47 negative editor, 103 positive editor, 11 footgun immunity, 8 proptest, 5 error proptest, 16 validation, 13 serde.
 - **8 proptest fuzzers**: random document generation, span integrity, comment handling, editor operation sequences, garbage value injection, malformed input recovery.
 - **Footgun immunity**: 11 tests proving format-preservation invariants that `toml_edit` cannot guarantee.
 - **Pont fmt integration**: realistic pipeline tests (parse → promote → reorder → serialize).
-- **Negative editor tests**: all error paths across all 21 OpKind variants with readable failure messages.
-- 84.5% line coverage, 85.9% region coverage.
+- **Negative editor tests**: all error paths across all 22 OpKind variants with readable failure messages.
+63:- 84.5% line coverage, 85.9% region coverage.
 
 #### CI/CD
 - `justfile` with recipes for build, test, coverage, benchmarks, lint, no_std, wasm, mutation testing, fuzzing, and git hook setup.
@@ -83,10 +84,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Stale-index panic on successive operations.
 - `move_key` to root when no root entries exist — insert position now correct.
 - Dotted table header handling in `reorder_root` (first-segment name matching `doc.keys()`).
-
 ### Documentation
-- Crate-level docs: 10 sections covering quick start, features, key types, validation, reordering, container editing, core-only usage, INI support, footgun-free guarantees, acknowledgments.
-- 19 doc-test blocks with usage examples.
+- Crate-level docs: 12 sections covering quick start, features, key types, validation, reordering, container editing, comment control, core-only usage, INI support, footgun-free guarantees, and acknowledgments.
+- 25 doc-test blocks with usage examples.
+- 6 runnable examples: `basic-edit`, `batch-migrate`, `pont-fmt`, `containers`, `validation`, `ini-edit`.
 - `README.md` for both `tomlini` and `tomlini_serde`.
 - Zero rustdoc warnings.
 - Design documents: `BATCH_EDITOR_DESIGN.md`, `DECODER_DESIGN.md`, `CONTAINER_EDITING.md`, `SERDE.md`, `POSITIONING.md`.

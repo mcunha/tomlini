@@ -38,9 +38,11 @@
 //!
 //! - [`FlatDoc`] — parsed document: source string + flat span index
 //! - [`Editor`] — batch mutation accumulator, commit applies all ops at once
+//! - [`BringAlong`] — composable flags for what adjacent text to carry when relocating
 //! - [`Span`], [`SpanKind`] — classified byte ranges in the source
 //! - [`ParseError`] — parse error with byte position
 //! - [`ValidationMode`] — lenient/relaxed/strict validation levels
+//! - [`EditError`] — editor error variants (`NotFound`, `InvalidPath`, `SectionExists`, `TableMismatch`)
 //! - [`SpanSink`] — core-only callback trait for span emission
 //!
 //! ## Performance
@@ -107,7 +109,30 @@
 //!     .array_push("allowed-hosts", "\"10.0.0.3\"")
 //!     .inline_set("colors", "red", "\"#cc0000\"")
 //!     .aot_push("backend", &[("host", "\"10.0.0.3\""), ("port", "9001")])
+//!     .aot_remove("backend", 0)
 //!     .commit()?;
+//! ```
+//!
+//! ## Comment control
+//!
+//! [`BringAlong`] flags let you control what adjacent text moves with a key
+//! or section during relocation.  Combine flags with `|`:<｜end▁of▁thinking｜>
+//!
+//! [`BringAlong`] flags let you control what adjacent text moves with a key
+//! or section during relocation.  Combine flags with `|`:
+//!
+//! ```ignore
+//! use tomlini::editor::BringAlong;
+//!
+//! // Bring comment lines directly above the key
+//! doc.edit().move_key_bring("a.k", "b.k", BringAlong::COMMENTS_ABOVE).commit()?;
+//!
+//! // Bring comments on both sides, plus blank lines above
+//! let bring = BringAlong::EVERYTHING_ABOVE | BringAlong::COMMENTS_BELOW;
+//! doc.edit().promote_key_bring("meta.base", bring).commit()?;
+//!
+//! // Reorder root entries, bringing comments above each section
+//! doc.edit().reorder_root_bring(&["base", "meta"], BringAlong::COMMENTS_ABOVE).commit()?;
 //! ```
 //!
 //! ## Core-only usage
@@ -122,6 +147,8 @@
 //!
 //! [`FlatDoc`]: crate::FlatDoc
 //! [`Editor`]: crate::editor::Editor
+//! [`BringAlong`]: crate::editor::BringAlong
+//! [`EditError`]: crate::edit::EditError
 //! [`Span`]: crate::Span
 //! [`SpanKind`]: crate::SpanKind
 //! [`SpanSink`]: crate::SpanSink
