@@ -1,6 +1,6 @@
 # tomlini — SAX TOML/INI parser and editor
 
-[![CI](https://github.com/user/tomlini/actions/workflows/ci.yml/badge.svg)](https://github.com/user/tomlini/actions/workflows/ci.yml)
+[![CI](https://github.com/mcunha/tomlini/actions/workflows/ci.yml/badge.svg)](https://github.com/mcunha/tomlini/actions/workflows/ci.yml)
 [![docs.rs](https://img.shields.io/docsrs/tomlini)](https://docs.rs/tomlini)
 [![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](#license)
 [![MSRV](https://img.shields.io/badge/MSRV-1.85.0-orange)](https://blog.rust-lang.org/2025/02/20/Rust-1.85.0.html)

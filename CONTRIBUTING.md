@@ -3,7 +3,7 @@
 ## Setup
 
 ```bash
-git clone https://github.com/user/tomlini
+git clone https://github.com/mcunha/tomlini
 cd tomlini
 just setup-git-hooks   # installs pre-commit (zizmor, fmt, clippy)
 ```
