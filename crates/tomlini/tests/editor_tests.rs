@@ -791,10 +791,33 @@ fn test_reorder_root_single_entry_is_noop() {
     assert!(doc.to_string().contains("[only]"));
 }
 
-// ============================================================
-// Pont fmt pipeline integration test
-// ============================================================
+#[test]
+fn test_reorder_root_preserves_inter_entry_comments() {
+    // Comments BETWEEN root entries must survive reorder_root
+    let input = "base = \"my-base\"\n# comment before meta\n[meta]\nkind = \"leaf\"\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = tomlini::editor::Editor::new();
+    editor.reorder_root(&["meta", "base"]).commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    assert!(out.contains("# comment before meta"),
+        "comment between entries was dropped during reorder_root: {out}");
+}
 
+#[test]
+fn test_reorder_root_following_anchor_moves_comment_with_section() {
+    // Comment preceding a section header moves with the section in Following mode
+    let input = "base = \"my-base\"\n# comment for meta\n[meta]\nkind = \"leaf\"\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = tomlini::editor::Editor::new();
+    editor.reorder_root_anchored(&["meta", "base"], tomlini::editor::CommentAnchor::Following).commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    let comment_pos = out.find("# comment for meta").unwrap();
+    let meta_pos = out.find("[meta]").unwrap();
+    assert!(comment_pos < meta_pos,
+        "comment should precede [meta] with Following anchor: {out}");
+}
+
+// ============================================================
 #[test]
 fn test_pont_pipeline_reorder_tables() {
     // Simulates the pont fmt pipeline: parse a profile-style TOML config,

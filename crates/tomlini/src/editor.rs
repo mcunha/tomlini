@@ -59,7 +59,14 @@ struct Op {
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum OpKind { Set, Insert, Remove, InsertSection, ReplaceSection, ClearSection, RenameSection, RenameKey, MoveKey, PromoteKey, MoveKeyCreate, ArrayPush, ArraySet, ArrayInsert, ArrayRemove, AotPush, AotSet, AotRemove, InlineSet, InlineInsert, InlineRemove, ReorderRoot }
 
-// ============================================================
+/// How comments between root entries are associated during [`reorder_root_anchored`](Editor::reorder_root_anchored).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CommentAnchor {
+    /// Comments stay with the preceding entry (default).
+    Preceding,
+    /// Comments stay with the following entry (e.g., comment before `[section]` moves with the section).
+    Following,
+}
 // Helpers
 // ============================================================
 
@@ -436,10 +443,31 @@ impl Editor {
     /// are placed after the listed entries in their original relative order.
     /// Formatting (comments, whitespace, key decor) is preserved for each
     /// entry because entire byte ranges are moved, not individual lines.
+    ///
+    /// Comments between entries are associated with the **preceding** entry.
+    /// Use [`reorder_root_anchored`](Editor::reorder_root_anchored) with
+    /// [`CommentAnchor::Following`] to associate them with the following entry.
     pub fn reorder_root(&mut self, order: &[&str]) -> &mut Self {
+        self.reorder_root_anchored(order, CommentAnchor::Preceding)
+    }
+
+    /// Reorder root-level entries with explicit comment association.
+    ///
+    /// `anchor` controls which entry "owns" comments that appear between
+    /// two root entries:
+    ///
+    /// - [`CommentAnchor::Preceding`] (default) — comments stay with the
+    ///   entry above them.  This is the structural default because the
+    ///   TOML spec does not define comment association.
+    ///
+    /// - [`CommentAnchor::Following`] — comments stay with the entry below
+    ///   them.  Use this when your project convention places comments above
+    ///   the section they describe (e.g., pont-style profile configs).
+    pub fn reorder_root_anchored(&mut self, order: &[&str], anchor: CommentAnchor) -> &mut Self {
+        let tag = match anchor { CommentAnchor::Preceding => None, CommentAnchor::Following => Some("following".to_string()) };
         self.ops.push(Op {
             kind: OpKind::ReorderRoot, table: Vec::new(), key: String::new(), value: String::new(),
-            prefix: Some(order.join(",")), suffix: None,
+            prefix: Some(order.join(",")), suffix: tag,
             index: None, inline_key: None, pairs: Vec::new(), to_table: Vec::new(), to_key: String::new(),
         });
         self
@@ -1300,6 +1328,40 @@ impl Editor {
                     }
                     all_starts.sort_by_key(|(_, s)| *s);
 
+                    // For Following anchor: extend each entry's start backward
+                    // to include comment lines directly above it (no blank-line gap).
+                    let is_following = op.suffix.as_deref() == Some("following");
+                    if is_following && all_starts.len() > 1 {
+                        for idx in 1..all_starts.len() {
+                            let mut pos = all_starts[idx].1 as usize;
+                            // Walk back to the previous \n before this entry
+                            if pos > 0 { pos -= 1; }
+                            while pos > 0 && doc.source.as_bytes()[pos] != b'\n' { pos -= 1; }
+                            // Now pos is at a \n. Check if the line above is a comment.
+                            // Walk backward, collecting comment lines until a blank line.
+                            let mut line_start = pos;
+                            while line_start > 0 {
+                                let line_end = line_start;
+                                line_start -= 1;
+                                while line_start > 0 && doc.source.as_bytes()[line_start - 1] != b'\n' { line_start -= 1; }
+                                // Check if this line is a comment (leading `#` after optional whitespace)
+                                let line = &doc.source[line_start..line_end];
+                                let is_comment = line.trim_start().starts_with('#');
+                                if is_comment {
+                                    // Include this comment line in the following entry
+                                    all_starts[idx].1 = line_start as u32;
+                                    // Continue upward to previous line
+                                } else if line.trim().is_empty() {
+                                    // Blank line — stop extending
+                                    break;
+                                } else {
+                                    // Non-comment, non-blank line — stop
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
                     root_entries.clear();
                     for idx in 0..all_starts.len() {
                         let (name, start) = &all_starts[idx];
@@ -1322,7 +1384,6 @@ impl Editor {
                             new_text.push_str(&doc.source[*start as usize..*end as usize]);
                         }
                     }
-
                     // Remove the entire root block and insert reordered text
                     resolved.push(Resolved { start: block_start, end: block_end, replacement: new_text });
                 }
@@ -2024,7 +2085,15 @@ impl<'a> EditorHandle<'a> {
         self
     }
 
-    /// Queue promotion of a key from a sub-table to the document root.
+    /// Queue reordering with explicit comment association.
+    ///
+    /// See [`Editor::reorder_root_anchored`] for details.
+    pub fn reorder_root_anchored(&mut self, order: &[&str], anchor: CommentAnchor) -> &mut Self {
+        self.editor.reorder_root_anchored(order, anchor);
+        self
+    }
+
+    /// Queue promoting of a key from a sub-table to the document root.
     ///
     /// See [`Editor::promote_key`] for details.
     pub fn promote_key(&mut self, from: &str) -> &mut Self {
