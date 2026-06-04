@@ -1231,8 +1231,12 @@ impl Editor {
                                     _ => break,
                                 }
                             }
-                            if parts.len() == 1 {
-                                table_starts.push((parts[0].clone(), doc.spans[i].start));
+                            if !parts.is_empty() {
+                                // Use first segment as root name (matches keys() semantics)
+                                let name = &parts[0];
+                                if !table_starts.iter().any(|(n, _)| n == name) {
+                                    table_starts.push((name.clone(), doc.spans[i].start));
+                                }
                             }
                         }
                         i += 1;

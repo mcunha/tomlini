@@ -731,7 +731,159 @@ fn test_reorder_root_fluent() {
     assert!(meta_pos < base_pos, "[meta] should be before base: {out}");
 }
 
+
+// ── reorder_root edge cases ───────────────────────────────────
+
+#[test]
+fn test_reorder_root_empty_document() {
+    let mut doc = tomlini::FlatDoc::new();
+    let mut editor = tomlini::editor::Editor::new();
+    editor.reorder_root(&["anything"]).commit(&mut doc).unwrap();
+    assert_eq!(doc.to_string(), "");
+}
+
+#[test]
+fn test_reorder_root_entry_not_in_doc_is_skipped() {
+    let input = "base = \"my-base\"\n[meta]\nkind = \"leaf\"\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = tomlini::editor::Editor::new();
+    // "ghost" is not in the document — silently skipped. Listed entries keep.
+    editor.reorder_root(&["ghost", "base", "meta"]).commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    let base_pos = out.find("base =").unwrap();
+    let meta_pos = out.find("[meta]").unwrap();
+    assert!(base_pos < meta_pos, "base should be before [meta]: {out}");
+}
+
+#[test]
+fn test_reorder_root_entry_in_doc_not_in_order_is_dropped() {
+    let input = "a = 1\nb = 2\nc = 3\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = tomlini::editor::Editor::new();
+    // Only list "c" and "a" — "b" is omitted and should disappear
+    editor.reorder_root(&["c", "a"]).commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    assert!(!out.contains("b ="), "\"b\" should be dropped when not in order list: {out}");
+    assert!(out.contains("c ="), "\"c\" should be present: {out}");
+    assert!(out.contains("a ="), "\"a\" should be present: {out}");
+}
+
+#[test]
+fn test_reorder_root_table_only_document() {
+    let input = "[z]\nk = 1\n[a]\nk = 2\n[m]\nk = 3\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = tomlini::editor::Editor::new();
+    editor.reorder_root(&["a", "m", "z"]).commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    let a_pos = out.find("[a]").unwrap();
+    let m_pos = out.find("[m]").unwrap();
+    let z_pos = out.find("[z]").unwrap();
+    assert!(a_pos < m_pos, "[a] before [m]: {out}");
+    assert!(m_pos < z_pos, "[m] before [z]: {out}");
+}
+
+#[test]
+fn test_reorder_root_single_entry_is_noop() {
+    let input = "[only]\nk = 1\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = tomlini::editor::Editor::new();
+    editor.reorder_root(&["only"]).commit(&mut doc).unwrap();
+    assert!(doc.to_string().contains("[only]"));
+}
+
 // ============================================================
+// Pont fmt pipeline integration test
+// ============================================================
+
+#[test]
+fn test_pont_pipeline_reorder_tables() {
+    // Simulates the pont fmt pipeline: parse a profile-style TOML config,
+    // reorder root-level entries so that [base] comes first, then [meta],
+    // then [profiles].
+    let input = "\
+# My project profiles
+[profiles.dev]
+env = { FOO = \"dev\" }
+build = \"cargo build\"
+
+[meta]
+name = \"my-project\"
+
+[base]
+extends = []
+build = \"echo hi\"
+";
+    let mut doc = parse(input).unwrap();
+
+    // Step 1: compute desired order from doc.keys() + policy
+    // Verify root entries before reordering
+    let _keys = doc.keys(); // verify index is populated
+    assert_eq!(_keys.len(), 3, "expected 3 root entries: {_keys:?}");
+    // Policy: [base], [meta], [profiles]
+    let order = &["base", "meta", "profiles"];
+
+    // Step 2: reorder
+    doc.edit().reorder_root(order).commit().unwrap();
+
+    // Step 3: verify
+    let out = doc.to_string();
+    let base_pos = out.find("[base]").unwrap();
+    let meta_pos = out.find("[meta]").unwrap();
+    // Dotted headers keep their full name as written
+    let profiles_pos = out.find("[profiles.dev]").unwrap();
+    assert!(base_pos < meta_pos, "[base] before [meta]: {out}");
+    assert!(meta_pos < profiles_pos, "[meta] before [profiles.dev]: {out}");
+    assert!(out.contains("name = \"my-project\""));
+    assert!(out.contains("FOO = \"dev\""));
+    assert!(out.contains("# My project profiles"), "top comment lost: {out}");
+}
+
+#[test]
+fn test_pont_pipeline_promote_then_reorder() {
+    // Simulates the pont fmt pipeline when scalars have been absorbed
+    // into [meta] (TOML spec footgun).  Promote them back to root,
+    // then reorder scalars before tables.
+    let input = "\
+# project config
+[meta]
+name = \"my-project\"
+
+[meta]
+base = \"my-base\"
+kind = \"leaf\"
+";
+    let mut doc = parse(input).unwrap();
+
+    // Step 1: promote absorbed scalars to root
+    // (base and kind were absorbed into the second [meta] per TOML spec)
+    let _keys = doc.keys(); // verify index
+    doc.edit()
+        .promote_key("meta.base")
+        .promote_key("meta.kind")
+        .commit().unwrap();
+
+    // Step 2: verify promoted keys are at root
+    assert!(doc.has("base"), "base should be at root after promote");
+    assert!(doc.has("kind"), "kind should be at root after promote");
+
+    // Step 3: reorder — scalars before tables, alphabetically
+    doc.edit().reorder_root(&["base", "kind", "meta"]).commit().unwrap();
+
+    // Step 4: verify order
+    let out = doc.to_string();
+    let base_pos = out.find("base =").unwrap();
+    let kind_pos = out.find("kind =").unwrap();
+    let meta_pos = out.find("[meta]").unwrap();
+    assert!(base_pos < kind_pos, "base before kind: {out}");
+    assert!(kind_pos < meta_pos, "kind before [meta]: {out}");
+
+    // Step 5: content and comments preserved
+    assert!(out.contains("name = \"my-project\""));
+    assert!(out.contains("# project config"));
+}
+
+// ============================================================
+// move_key
 // ============================================================
 
 #[test]
