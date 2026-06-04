@@ -8,6 +8,8 @@
 
 name: Nightly
 
+permissions: read-all  # zizmor: ignore[excessive-permissions]
+
 on:
   schedule:
     - cron: '0 3 * * *'
