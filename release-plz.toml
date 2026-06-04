@@ -1,0 +1,25 @@
+# release-plz configuration
+# https://release-plz.ieni.dev/
+
+[workspace]
+# All workspace crates share the same version.
+# release-plz bumps the workspace version and all member versions together.
+version = "0.1.0"
+
+# Conventional commits determine the bump level.
+# fix: → patch, feat: → minor, feat!: → major
+changelog_update = true
+
+# Don't publish these crates
+[[package]]
+name = "toml_benchmarks"
+publish = false
+
+# Publish order — tomlini first (tomlini_serde depends on it)
+[[package]]
+name = "tomlini"
+publish = true
+
+[[package]]
+name = "tomlini_serde"
+publish = true
