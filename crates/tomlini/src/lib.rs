@@ -97,10 +97,13 @@
 //!
 //! ## Container editing
 //!
-//! Arrays, inline tables, and array-of-tables are first-class edit targets:
+//! Arrays, inline tables, and array-of-tables are first-class edit targets,
+//! alongside section-level primitives for self-healing and auto-creation:
 //!
 //! ```ignore
 //! doc.edit()
+//!     .promote_key("meta.base")                        // move to root
+//!     .move_key_create("meta.name", "game.name")       // auto-create [game]
 //!     .array_push("allowed-hosts", "\"10.0.0.3\"")
 //!     .inline_set("colors", "red", "\"#cc0000\"")
 //!     .aot_push("backend", &[("host", "\"10.0.0.3\""), ("port", "9001")])

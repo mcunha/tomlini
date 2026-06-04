@@ -563,3 +563,118 @@ fn test_inline_remove_last() {
     let out = doc.to_string();
     assert!(out.contains("{}"), "unexpected output: {out}");
 }
+
+// ============================================================
+// promote_key
+// ============================================================
+
+#[test]
+fn test_promote_key_simple() {
+    let input = "[meta]\nname = \"Test\"\nbase = \"my-base\"\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = tomlini::editor::Editor::new();
+    editor.promote_key("meta.base").commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    assert!(out.contains("base = \"my-base\""), "promoted key missing: {out}");
+    assert!(!out.contains("meta.base"), "dotted path still present: {out}");
+}
+
+#[test]
+fn test_promote_key_preserves_formatting() {
+    let input = "[meta]\n# above comment\nbase = \"val\"  # inline\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = tomlini::editor::Editor::new();
+    editor.promote_key("meta.base").commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    assert!(out.contains("# above comment"), "above comment lost: {out}");
+    assert!(out.contains("# inline"), "inline comment lost: {out}");
+}
+
+#[test]
+fn test_promote_key_last_in_table() {
+    // When the promoted key is the last in the table, the table may become empty
+    let input = "[meta]\nbase = \"my-base\"\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = tomlini::editor::Editor::new();
+    editor.promote_key("meta.base").commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    assert!(out.contains("base = \"my-base\""), "promoted key missing: {out}");
+}
+
+#[test]
+fn test_promote_key_with_fluent_handle() {
+    let input = "[meta]\nbase = \"my-base\"\n";
+    let mut doc = parse(input).unwrap();
+    doc.edit().promote_key("meta.base").commit().unwrap();
+    let out = doc.to_string();
+    assert!(out.contains("base = \"my-base\""), "promoted key missing: {out}");
+}
+
+#[test]
+fn test_promote_key_from_deep_table() {
+    let input = "[a.b.c]\nkey = 42\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = tomlini::editor::Editor::new();
+    editor.promote_key("a.b.c.key").commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    assert!(out.contains("key = 42"), "promoted key missing: {out}");
+}
+
+// ============================================================
+// move_key_create
+// ============================================================
+
+#[test]
+fn test_move_key_create_new_section() {
+    let input = "[meta]\nname = \"Test\"\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = tomlini::editor::Editor::new();
+    editor.move_key_create("meta.name", "game.name").commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    assert!(out.contains("[game]"), "new section header missing: {out}");
+    assert!(out.contains("name = \"Test\""), "moved key missing: {out}");
+}
+
+#[test]
+fn test_move_key_create_existing_section() {
+    // When destination exists, behaves like regular move_key
+    let input = "[meta]\nname = \"Test\"\n[game]\nversion = 1\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = tomlini::editor::Editor::new();
+    editor.move_key_create("meta.name", "game.name").commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    assert!(out.contains("[game]"), "section missing: {out}");
+    assert!(out.contains("name = \"Test\""), "moved key missing: {out}");
+    assert!(out.contains("version = 1"), "existing key lost: {out}");
+}
+
+#[test]
+fn test_move_key_create_to_root() {
+    let input = "[meta]\nname = \"Test\"\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = tomlini::editor::Editor::new();
+    editor.move_key_create("meta.name", "name").commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    assert!(out.contains("name = \"Test\""), "moved key missing: {out}");
+}
+
+#[test]
+fn test_move_key_create_preserves_formatting() {
+    let input = "[meta]\n# comment\nname = \"Test\"  # inline\n";
+    let mut doc = parse(input).unwrap();
+    let mut editor = tomlini::editor::Editor::new();
+    editor.move_key_create("meta.name", "game.name").commit(&mut doc).unwrap();
+    let out = doc.to_string();
+    assert!(out.contains("# comment"), "above comment lost: {out}");
+    assert!(out.contains("# inline"), "inline comment lost: {out}");
+}
+
+#[test]
+fn test_move_key_create_with_fluent_handle() {
+    let input = "[meta]\nname = \"Test\"\n";
+    let mut doc = parse(input).unwrap();
+    doc.edit().move_key_create("meta.name", "game.name").commit().unwrap();
+    let out = doc.to_string();
+    assert!(out.contains("[game]"), "new section header missing: {out}");
+    assert!(out.contains("name = \"Test\""), "moved key missing: {out}");
+}

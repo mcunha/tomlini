@@ -186,3 +186,39 @@ use tomlini::{parse, editor::Editor, EditError};
     assert!(e.commit(&mut doc).is_err());
     // After error, doc is in undefined state — ops before error may have applied
 }
+
+// ---- promote_key errors ----
+
+#[test] fn promote_nonexistent_key() {
+    let mut doc = parse("[meta]\nname = \"Test\"\n").unwrap();
+    let mut e = Editor::new(); e.promote_key("meta.nope");
+    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::NotFound));
+}
+
+#[test] fn promote_nonexistent_table() {
+    let mut doc = parse("x = 1\n").unwrap();
+    let mut e = Editor::new(); e.promote_key("nonexistent.key");
+    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::NotFound));
+}
+
+#[test]
+#[should_panic(expected = "promote_key requires a dotted path")]
+fn promote_root_key_panics() {
+    let _e = Editor::new();
+    let mut e = Editor::new();
+    e.promote_key("root_key"); // no dot → should panic
+}
+
+// ---- move_key_create errors ----
+
+#[test] fn move_key_create_nonexistent_source() {
+    let mut doc = parse("[meta]\nname = \"Test\"\n[game]\nversion = 1\n").unwrap();
+    let mut e = Editor::new(); e.move_key_create("meta.nope", "game.nope");
+    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::NotFound));
+}
+
+#[test] fn move_key_create_from_nonexistent_table() {
+    let mut doc = parse("x = 1\n").unwrap();
+    let mut e = Editor::new(); e.move_key_create("nope.key", "x");
+    assert!(matches!(e.commit(&mut doc).unwrap_err(), EditError::NotFound));
+}

@@ -57,7 +57,7 @@ struct Op {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-enum OpKind { Set, Insert, Remove, InsertSection, ReplaceSection, ClearSection, RenameSection, RenameKey, MoveKey, ArrayPush, ArraySet, ArrayInsert, ArrayRemove, AotPush, AotSet, InlineSet, InlineInsert, InlineRemove, ReorderRoot }
+enum OpKind { Set, Insert, Remove, InsertSection, ReplaceSection, ClearSection, RenameSection, RenameKey, MoveKey, PromoteKey, MoveKeyCreate, ArrayPush, ArraySet, ArrayInsert, ArrayRemove, AotPush, AotSet, InlineSet, InlineInsert, InlineRemove, ReorderRoot }
 
 // ============================================================
 // Helpers
@@ -1079,9 +1079,121 @@ impl Editor {
                     resolved.push(Resolved { start: line_start as u32, end: line_end as u32, replacement: String::new() });
                     resolved.push(Resolved { start: insert_pos, end: insert_pos, replacement: line_text });
                 }
+                OpKind::PromoteKey => {
+                    // Resolve: find key in sub-table, extract its line, insert at root
+                    let from_path: Vec<&str> = op.table.iter().map(|s| s.as_str())
+                        .chain(core::iter::once(op.key.as_str())).collect();
+                    let entry = index.iter()
+                        .find(|(p, _)| path_eq(p, &from_path))
+                        .ok_or(EditError::NotFound)?;
+                    let key_span = doc.spans[entry.1.key_start];
+                    let value_span = doc.spans[entry.1.value_idx];
+
+                    // Extract the whole line (key = value, comments, whitespace)
+                    let mut line_start = key_span.start as usize;
+                    while line_start > 0 && doc.source.as_bytes()[line_start - 1] != b'\n' { line_start -= 1; }
+                    let mut line_end = value_span.end as usize;
+                    while line_end < doc.source.len() && doc.source.as_bytes()[line_end] != b'\n' { line_end += 1; }
+                    if line_end < doc.source.len() { line_end += 1; }
+                    let line_text = doc.source[line_start..line_end].to_string();
+
+                    // Insert at root: after the last root-level entry, or at EOF
+                    let root_entries: Vec<_> = index.iter()
+                        .filter(|(p, _)| p.len() == 1)
+                        .collect();
+                    let insert_pos = if let Some((_, last)) = root_entries.last() {
+                        let last_val_span = doc.spans[last.value_idx];
+                        let mut end = last_val_span.end as usize;
+                        while end < doc.source.len() && doc.source.as_bytes()[end] != b'\n' { end += 1; }
+                        if end < doc.source.len() { end += 1; }
+                        end as u32
+                    } else {
+                        doc.spans.last().map(|s| s.end).unwrap_or(0)
+                    };
+
+                    // Remove from sub-table, insert at root
+                    resolved.push(Resolved { start: line_start as u32, end: line_end as u32, replacement: String::new() });
+                    resolved.push(Resolved { start: insert_pos, end: insert_pos, replacement: line_text });
+                }
+                OpKind::MoveKeyCreate => {
+                    // Check whether destination table exists
+                    let to_table_refs: Vec<&str> = op.to_table.iter().map(|s| s.as_str()).collect();
+                    let has_dest = if op.to_table.is_empty() {
+                        true // promoting to root always works
+                    } else {
+                        section_header_exists(&doc.spans, &doc.source, &op.to_table)
+                    };
+
+                    if has_dest {
+                        // Destination exists — same logic as MoveKey
+                        let from_path: Vec<&str> = op.table.iter().map(|s| s.as_str())
+                            .chain(core::iter::once(op.key.as_str())).collect();
+                        let entry = index.iter()
+                            .find(|(p, _)| path_eq(p, &from_path))
+                            .ok_or(EditError::NotFound)?;
+                        let key_span = doc.spans[entry.1.key_start];
+                        let value_span = doc.spans[entry.1.value_idx];
+                        let mut line_start = key_span.start as usize;
+                        while line_start > 0 && doc.source.as_bytes()[line_start - 1] != b'\n' { line_start -= 1; }
+                        let mut line_end = value_span.end as usize;
+                        while line_end < doc.source.len() && doc.source.as_bytes()[line_end] != b'\n' { line_end += 1; }
+                        if line_end < doc.source.len() { line_end += 1; }
+                        let line_text = doc.source[line_start..line_end].to_string();
+
+                        let entries_in_target: Vec<_> = index.iter()
+                            .filter(|(p, _)| p.len() == op.to_table.len() + 1
+                                && path_eq(&p[..op.to_table.len()], &to_table_refs))
+                            .collect();
+                        let insert_pos = if let Some((_, last)) = entries_in_target.last() {
+                            let last_val_span = doc.spans[last.value_idx];
+                            let mut end = last_val_span.end as usize;
+                            while end < doc.source.len() && doc.source.as_bytes()[end] != b'\n' { end += 1; }
+                            if end < doc.source.len() { end += 1; }
+                            end as u32
+                        } else if op.to_table.is_empty() {
+                            // Moving to root, but no root entries exist yet — insert at start
+                            doc.spans.last().map(|s| s.end).unwrap_or(0)
+                        } else if let Some((_open_idx, close_idx)) = find_section_header(&doc.spans, &doc.source, &op.to_table) {
+                            let header_close = doc.spans[close_idx];
+                            let mut pos = header_close.end as usize;
+                            while pos < doc.source.len() && doc.source.as_bytes()[pos] != b'\n' { pos += 1; }
+                            if pos < doc.source.len() { pos += 1; }
+                            pos as u32
+                        } else {
+                            return Err(EditError::NotFound);
+                        };
+                        resolved.push(Resolved { start: line_start as u32, end: line_end as u32, replacement: String::new() });
+                        resolved.push(Resolved { start: insert_pos, end: insert_pos, replacement: line_text });
+                    } else {
+                        // Destination table does not exist — create it first, then move key
+                        // 1. Move key logic (extract line)
+                        let from_path: Vec<&str> = op.table.iter().map(|s| s.as_str())
+                            .chain(core::iter::once(op.key.as_str())).collect();
+                        let entry = index.iter()
+                            .find(|(p, _)| path_eq(p, &from_path))
+                            .ok_or(EditError::NotFound)?;
+                        let key_span = doc.spans[entry.1.key_start];
+                        let value_span = doc.spans[entry.1.value_idx];
+                        let mut line_start = key_span.start as usize;
+                        while line_start > 0 && doc.source.as_bytes()[line_start - 1] != b'\n' { line_start -= 1; }
+                        let mut line_end = value_span.end as usize;
+                        while line_end < doc.source.len() && doc.source.as_bytes()[line_end] != b'\n' { line_end += 1; }
+                        if line_end < doc.source.len() { line_end += 1; }
+                        let line_text = doc.source[line_start..line_end].to_string();
+
+                        // 2. Create new section header at end of document
+                        let insert_pos = doc.source.len() as u32;
+                        let sep = detect_blank_line_sep(&doc.spans, &doc.source);
+                        let header_name = op.to_table.join(".");
+                        let header_text = format!("{}[{}]\n", sep, header_name);
+
+                        // 3. Remove old line, insert header + moved key
+                        resolved.push(Resolved { start: line_start as u32, end: line_end as u32, replacement: String::new() });
+                        resolved.push(Resolved { start: insert_pos, end: insert_pos, replacement: format!("{}{}", header_text, line_text) });
+                    }
+                }
                 OpKind::ReorderRoot => {
                     let desired: Vec<&str> = op.prefix.as_deref().unwrap_or("").split(',').filter(|s| !s.is_empty()).collect();
-                    if desired.is_empty() { continue; }
 
                     // Collect all root-level entries with their byte ranges
                     let mut root_entries: Vec<(String, u32, u32)> = Vec::new();
@@ -1406,6 +1518,88 @@ impl Editor {
         });
         self
     }
+
+    ///
+    /// Promote a key from a sub-table to the document root.
+    ///
+    /// This is the self-healing primitive for the TOML spec footgun where
+    /// scalars placed after a `[table]` header are silently absorbed into
+    /// that table.  `promote_key("meta.base")` extracts `base` from
+    /// `[meta]` and inserts it at the root level, preserving its value,
+    /// inline comments, and formatting.
+    ///
+    /// The leaf key name is preserved; only the table prefix is stripped.
+    /// If a key with the same name already exists at the root level the
+    /// document will contain a duplicate key after commit — callers
+    /// should validate (or `remove` the target first) if avoiding
+    /// duplicates matters.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `from` is already a root-level key (no dots).
+    /// Promoting a root key is a no-op but confusing — this signals
+    /// a caller bug.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// // Input:  [meta]\nname = "Test"\nbase = "my-base"
+    /// // Parser: `base` → meta.base (absorbed per TOML spec)
+    /// doc.edit().promote_key("meta.base").commit()?;
+    /// // Result: base = "my-base" at root, [meta] keeps only `name`
+    /// ```
+    pub fn promote_key(&mut self, from: &str) -> &mut Self {
+        let (from_table, from_key) = split_path(from);
+        assert!(!from_table.is_empty(), "promote_key requires a dotted path, e.g. meta.base — not a bare root key");
+        self.ops.push(Op {
+            kind: OpKind::PromoteKey,
+            table: from_table,
+            key: from_key,
+            value: String::new(),
+            prefix: None, suffix: None,
+            to_table: Vec::new(), to_key: String::new(),
+            pairs: Vec::new(),
+            index: None, inline_key: None,
+        });
+        self
+    }
+
+    ///
+    /// Move a key from one section to another, auto-creating the
+    /// destination table if it does not already exist.
+    ///
+    /// Like [`move_key`](Editor::move_key), but when the target table
+    /// doesn't have a `[section]` header in the document, one is
+    /// created before the key is inserted.  The header is appended
+    /// at the end of the document, using the prevailing blank-line
+    /// convention.
+    ///
+    /// If the target table already exists, this is identical to
+    /// `move_key(from, to)`.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// doc.edit().move_key_create("meta.name", "game.name").commit()?;
+    /// // If [game] didn't exist: creates `[game]` header, then inserts `name`
+    /// // If [game] already exists: same behaviour as move_key
+    /// ```
+    pub fn move_key_create(&mut self, from: &str, to: &str) -> &mut Self {
+        let (from_table, from_key) = split_path(from);
+        let (to_table, to_key) = split_path(to);
+        self.ops.push(Op {
+            kind: OpKind::MoveKeyCreate,
+            table: from_table,
+            key: from_key,
+            value: String::new(),
+            prefix: None, suffix: None,
+            to_table,
+            to_key,
+            pairs: Vec::new(),
+            index: None, inline_key: None,
+        });
+        self
+    }
 }
 
 // ============================================================
@@ -1692,8 +1886,32 @@ impl<'a> EditorHandle<'a> {
         self
     }
 
-    /// Apply all queued operations to the document and clear the queue.
+    /// Queue reordering of root-level entries.
     ///
+    /// See [`Editor::reorder_root`] for details.
+    pub fn reorder_root(&mut self, order: &[&str]) -> &mut Self {
+        self.editor.reorder_root(order);
+        self
+    }
+
+    /// Queue promotion of a key from a sub-table to the document root.
+    ///
+    /// See [`Editor::promote_key`] for details.
+    pub fn promote_key(&mut self, from: &str) -> &mut Self {
+        self.editor.promote_key(from);
+        self
+    }
+
+    /// Queue moving of a key to another section, auto-creating the
+    /// destination table if needed.
+    ///
+    /// See [`Editor::move_key_create`] for details.
+    pub fn move_key_create(&mut self, from: &str, to: &str) -> &mut Self {
+        self.editor.move_key_create(from, to);
+        self
+    }
+
+    /// Apply all queued operations to the document and clear the queue.
     /// See [`Editor::commit`] for details.
     pub fn commit(&mut self) -> Result<(), EditError> {
         self.editor.commit(self.doc)
