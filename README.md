@@ -36,6 +36,37 @@ doc.edit()
     .commit()?;
 ```
 
+## INI files with `;` comments
+
+```rust
+let ini = "; Server settings\n[server]\nhost = localhost\nport = 8080\n";
+let mut doc = tomlini::parse(ini)?;
+
+// INI-style `;` comments are parsed as comments, same as `#`
+let errors = doc.validate(tomlini::ValidationMode::Relaxed);
+assert!(errors.is_empty()); // relaxed mode accepts INI conventions
+
+doc.edit()
+    .set("server.port", "9090")
+    .commit()?;
+```
+
+## Validation modes
+
+```rust
+let mut doc = tomlini::parse(config)?;
+
+// Lenient — everything accepted, no errors
+let errors = doc.validate(tomlini::ValidationMode::Lenient);
+assert_eq!(errors.len(), 0);
+
+// Relaxed — structural TOML rules + INI extensions
+let errors = doc.validate(tomlini::ValidationMode::Relaxed);
+
+// Strict — full TOML 1.1.0 spec compliance
+let errors = doc.validate(tomlini::ValidationMode::Strict);
+```
+
 ## License
 
 MIT OR Apache-2.0

@@ -1,4 +1,4 @@
-//! # toml\_fast — DOM-free TOML parser and editor
+//! # tomlini — next-generation SAX TOML parser and editor
 //!
 //! A zero-dependency, three-tier (`core`/`alloc`/`std`) TOML implementation
 //! that parses into a flat span index instead of a DOM tree. Edits are
@@ -54,11 +54,29 @@
 //! path preserves comments, whitespace, and key order unless explicitly
 //! overridden with formatting modifiers.
 //!
+//! ## INI files
+//!
+//! `tomlini` parses INI-style configs out of the box — `;` comments, bare
+//! values, `=` separators. No special mode needed: `tomlini::parse(ini_str)`.
+//! Use [`ValidationMode::Relaxed`] to validate structural rules while
+//! accepting INI conventions.
+//!
+//! ## Validation modes
+//!
+//! ```ignore
+//! use tomlini::ValidationMode;
+//!
+//! doc.validate(ValidationMode::Lenient);   // everything accepted
+//! doc.validate(ValidationMode::Relaxed);   // structural TOML + INI extensions
+//! doc.validate(ValidationMode::Strict);    // full TOML 1.1.0 spec
+//! ```
+//!
 //! [`FlatDoc`]: crate::FlatDoc
 //! [`Editor`]: crate::Editor
 //! [`Span`]: crate::Span
 //! [`SpanKind`]: crate::SpanKind
 //! [`ParseError`]: crate::ParseError
+//! [`ValidationMode`]: crate::ValidationMode
 
 #![cfg_attr(all(not(feature = "std"), not(test)), no_std)]
 
