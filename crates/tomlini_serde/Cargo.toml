@@ -9,12 +9,8 @@ description = "Serde Deserializer powered by tomlini's flat-span parser"
 [package.metadata.release]
 release = false
 
-[features]
-default = ["std"]
-
 [dependencies]
 tomlini = { path = "../tomlini", default-features = false }
-toml_datetime = { path = "../toml_datetime", features = ["serde"] }
 serde = { version = "1", default-features = false, features = ["derive"] }
 
 [dev-dependencies]

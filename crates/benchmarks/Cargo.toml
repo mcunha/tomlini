@@ -28,5 +28,9 @@ harness = false
 name = "7-ini"
 harness = false
 
+[[bench]]
+name = "8-realworld"
+harness = false
+
 [lints]
 workspace = true
