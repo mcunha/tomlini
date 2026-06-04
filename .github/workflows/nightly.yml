@@ -82,3 +82,15 @@ jobs:
         env:
           PROPTEST_CASES: 0
           PROPTEST_MAX_SHRINK_TIME: 15000
+
+  # ── CI security audit ───────────────────────────────────────
+
+  zizmor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install zizmor
+        run: cargo install zizmor
+      - name: Audit workflows
+        run: zizmor --persona pedantic .github/workflows/

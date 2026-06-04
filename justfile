@@ -72,8 +72,32 @@ alloc-test:
 # ---- WASM -----------------------------------------------------------------
 
 wasm:
-    cargo build -p tomlini --target wasm32-unknown-unknown --no-default-features --features alloc
 
+# ---- Lint ------------------------------------------------------------------
+
+clippy:
+    cargo clippy -p tomlini -- -D warnings
+
+fmt-check:
+    cargo fmt -p tomlini -- --check
+
+fmt:
+    cargo fmt -p tomlini
+
+zizmor:
+    # Audit GitHub Actions workflows for security issues.
+    zizmor --persona pedantic .github/workflows/
+
+lint: clippy fmt-check zizmor
+
+setup-git-hooks:
+    # Install the pre-commit hook into .git/hooks/
+    cp scripts/pre-commit .git/hooks/pre-commit
+
+# ---- WASM ------------------------------------------------------------------
+
+wasm:
+    cargo build -p tomlini --target wasm32-unknown-unknown --no-default-features --features alloc
 
 # ---- Mutation testing (nightly CI) -----------------------------------------
 
