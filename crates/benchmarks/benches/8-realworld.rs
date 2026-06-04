@@ -268,4 +268,116 @@ fn cross_format_roundtrip() -> usize {
     doc.validate(tomlini::ValidationMode::Relaxed).len()
 }
 
+// ---- Pathological TOML documents ----
+
+/// 10,000 minimal key-value pairs — stresses span count
+static TOML_TINY_KV: LazyLock<String> = LazyLock::new(|| {
+    let mut s = String::with_capacity(80000);
+    for i in 0..10000 { s.push_str(&format!("k{i}={i}\n")); }
+    s
+});
+
+/// 1,000 table headers with 1 key each — stresses structural tokens
+static TOML_1000_SECTIONS: LazyLock<String> = LazyLock::new(|| {
+    let mut s = String::with_capacity(30000);
+    for i in 0..1000 { s.push_str(&format!("[s{i}]\nk={i}\n\n")); }
+    s
+});
+
+/// 10,000-element array — stresses comma/delimiter density
+static TOML_LARGE_ARRAY: LazyLock<String> = LazyLock::new(|| {
+    let mut s = String::with_capacity(60000);
+    s.push_str("arr = [");
+    for i in 0..10000 {
+        if i > 0 { s.push(','); }
+        s.push_str(&format!("{i}"));
+    }
+    s.push_str("]\n");
+    s
+});
+
+/// 1,000 AOT entries — stresses AOT row grouping
+static TOML_MANY_AOT: LazyLock<String> = LazyLock::new(|| {
+    let mut s = String::with_capacity(50000);
+    for i in 0..1000 { s.push_str(&format!("[[entry]]\nname = \"item-{i}\"\nvalue = {i}\n\n")); }
+    s
+});
+
+/// 100-entry deep dotted key — stresses path resolution
+static TOML_DEEP_DOTTED: LazyLock<String> = LazyLock::new(|| {
+    let path: Vec<String> = (0..100).map(|i| format!("k{i}")).collect();
+    format!("{} = 42\n", path.join("."))
+});
+
+/// 2,000 inline tables — stresses inline table parsing
+static TOML_MANY_INLINE: LazyLock<String> = LazyLock::new(|| {
+    let mut s = String::with_capacity(20000);
+    for i in 0..2000 { s.push_str(&format!("t{i} = {{ k = {i} }}\n")); }
+    s
+});
+
+// ---- Pathological INI documents ----
+
+/// 10,000 minimal key-value pairs — INI version
+static INI_TINY_KV: LazyLock<String> = LazyLock::new(|| {
+    let mut s = String::with_capacity(80000);
+    s.push_str("; 10k keys\n");
+    for i in 0..10000 { s.push_str(&format!("key_{i} = value_{i}\n")); }
+    s
+});
+
+/// 1,000 INI sections with 1 key each
+static INI_1000_SECTIONS: LazyLock<String> = LazyLock::new(|| {
+    let mut s = String::with_capacity(30000);
+    for i in 0..1000 { s.push_str(&format!("[section_{i}]\nkey = {i}\n\n")); }
+    s
+});
+
+/// INI with comment-heavy formatting — every key has a `;` comment above it
+static INI_COMMENT_HEAVY: LazyLock<String> = LazyLock::new(|| {
+    let mut s = String::with_capacity(200000);
+    for i in 0..1000 {
+        s.push_str(&format!("; Section {i} config\n; See docs/component_{i}.md\nkey_{i} = value_{i} ; inline\n\n"));
+    }
+    s
+});
+
+/// INI with very long keys and values
+static INI_LONG_KEYS: LazyLock<String> = LazyLock::new(|| {
+    let mut s = String::with_capacity(200000);
+    for i in 0..200 {
+        let key = format!("very_long_configuration_key_name_for_component_{i:04}");
+        let val = format!("a_very_long_value_string_that_contains_many_characters_{i:04}");
+        s.push_str(&format!("{key} = {val}\n"));
+    }
+    s
+});
+
+// ---- Pathological parse benchmarks ----
+
+#[divan::bench] fn parse_toml_10k_tiny_kv() -> tomlini::FlatDoc { tomlini::parse(&TOML_TINY_KV).unwrap() }
+#[divan::bench] fn parse_toml_1000_sections() -> tomlini::FlatDoc { tomlini::parse(&TOML_1000_SECTIONS).unwrap() }
+#[divan::bench] fn parse_toml_10k_array() -> tomlini::FlatDoc { tomlini::parse(&TOML_LARGE_ARRAY).unwrap() }
+#[divan::bench] fn parse_toml_1000_aot() -> tomlini::FlatDoc { tomlini::parse(&TOML_MANY_AOT).unwrap() }
+#[divan::bench] fn parse_toml_deep_dotted() -> tomlini::FlatDoc { tomlini::parse(&TOML_DEEP_DOTTED).unwrap() }
+#[divan::bench] fn parse_toml_2k_inline() -> tomlini::FlatDoc { tomlini::parse(&TOML_MANY_INLINE).unwrap() }
+#[divan::bench] fn parse_ini_10k_tiny_kv() -> tomlini::FlatDoc { tomlini::parse(&INI_TINY_KV).unwrap() }
+#[divan::bench] fn parse_ini_1000_sections() -> tomlini::FlatDoc { tomlini::parse(&INI_1000_SECTIONS).unwrap() }
+#[divan::bench] fn parse_ini_comment_heavy() -> tomlini::FlatDoc { tomlini::parse(&INI_COMMENT_HEAVY).unwrap() }
+#[divan::bench] fn parse_ini_long_keys() -> tomlini::FlatDoc { tomlini::parse(&INI_LONG_KEYS).unwrap() }
+
+// ---- Pathological edit benchmarks ----
+
+#[divan::bench] fn edit_toml_10k_tiny_kv() -> String {
+    let mut doc = tomlini::parse(&TOML_TINY_KV).unwrap();
+    doc.edit().set("k5000", "99999").commit().unwrap();
+    doc.to_string()
+}
+
+#[divan::bench] fn edit_ini_10k_tiny_kv() -> String {
+    let mut doc = tomlini::parse(&INI_TINY_KV).unwrap();
+    doc.edit().set("key_5000", "modified").commit().unwrap();
+    doc.to_string()
+}
+
 fn main() { divan::main(); }
