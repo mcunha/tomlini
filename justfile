@@ -98,7 +98,27 @@ setup-git-hooks:
     # Install the pre-commit hook into .git/hooks/
     cp scripts/pre-commit .git/hooks/pre-commit
 
-# ---- WASM ------------------------------------------------------------------
+
+# ---- Release ----------------------------------------------------------------
+
+release-dry:
+    # Dry-run: show what cargo-release would do without changing anything.
+    cargo release patch --workspace --no-publish --no-push --no-tag --dry-run
+
+release-patch:
+    # Bump patch version, commit, tag. Push and publish manually.
+    cargo release patch --workspace --no-publish --no-push --execute
+    @echo "Tagged. Push with: git push --follow-tags"
+
+release-minor:
+    cargo release minor --workspace --no-publish --no-push --execute
+    @echo "Tagged. Push with: git push --follow-tags"
+
+release-major:
+    cargo release major --workspace --no-publish --no-push --execute
+    @echo "Tagged. Push with: git push --follow-tags"
+
+ # ---- WASM ------------------------------------------------------------------
 
 wasm:
     cargo build -p tomlini --target wasm32-unknown-unknown --no-default-features --features alloc
