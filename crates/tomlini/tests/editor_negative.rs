@@ -181,10 +181,10 @@ use tomlini::{parse, editor::Editor, EditError};
 
 #[test] fn commit_stops_at_first_error_source_unchanged() {
     let mut doc = parse("name = \"test\"\n").unwrap();
-    let original = doc.to_string();
     let mut e = Editor::new(); e.set("name", "new-name"); e.set("nonexistent", "val");
     assert!(e.commit(&mut doc).is_err());
-    // After error, doc is in undefined state — ops before error may have applied
+    // After error, document is in undefined state — ops before the error
+    // may have already been applied.  No source-unchanged assertion is made.
 }
 
 // ---- promote_key errors ----

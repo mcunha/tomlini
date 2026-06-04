@@ -1227,7 +1227,7 @@ impl Editor {
                                         j += 1;
                                     }
                                     SpanKind::Dot => { j += 1; }
-                                    SpanKind::ArrayClose => { j += 1; break; }
+                                    SpanKind::ArrayClose => { break; }
                                     _ => break,
                                 }
                             }
@@ -1240,18 +1240,18 @@ impl Editor {
 
                     // 3. Merge scalars and tables into ordered blocks, computing section end
                     //    for each table as the start of the next root entry (or EOF).
-                    let mut all_starts: Vec<(String, u32, bool)> = Vec::new(); // (name, start, is_table)
+                    let mut all_starts: Vec<(String, u32)> = Vec::new(); // (name, start)
                     for (name, start, _) in &root_entries {
-                        all_starts.push((name.clone(), *start, false));
+                        all_starts.push((name.clone(), *start));
                     }
                     for (name, start) in &table_starts {
-                        all_starts.push((name.clone(), *start, true));
+                        all_starts.push((name.clone(), *start));
                     }
-                    all_starts.sort_by_key(|(_, s, _)| *s);
+                    all_starts.sort_by_key(|(_, s)| *s);
 
                     root_entries.clear();
                     for idx in 0..all_starts.len() {
-                        let (name, start, is_table) = &all_starts[idx];
+                        let (name, start) = &all_starts[idx];
                         let end = if idx + 1 < all_starts.len() {
                             all_starts[idx + 1].1 // end = start of next entry
                         } else {
