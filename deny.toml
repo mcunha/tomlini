@@ -1,0 +1,58 @@
+# cargo-deny configuration — license compliance + vulnerability advisory + source verification.
+# https://embarkstudios.github.io/cargo-deny/
+
+[graph]
+# Keep this small — tomlini has very few dependencies.
+targets = [
+    { triple = "x86_64-unknown-linux-gnu" },
+    { triple = "wasm32-unknown-unknown", features = ["alloc"] },
+]
+
+[advisories]
+# Fail on any advisory with severity >= "medium"
+vulnerability = "deny"
+unmaintained = "warn"
+notice = "warn"
+severity-threshold = "medium"
+# RustSec advisory DB is the default
+db-url = "https://github.com/rustsec/advisory-db"
+db-path = "~/.cargo/advisory-db"
+
+[licenses]
+# tomlini is MIT OR Apache-2.0.  Dependencies must be compatible.
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-3.0",
+    "Zlib",
+]
+# copyleft licenses are denied by default — explicit is safer than implicit
+confidence-threshold = 0.8
+exceptions = []
+
+# tomlini's own crates
+[[licenses.clarify]]
+name = "tomlini"
+expression = "MIT OR Apache-2.0"
+license-files = [
+    { path = "LICENSE-MIT", hash = 0 },
+    { path = "LICENSE-APACHE", hash = 0 },
+]
+
+[bans]
+multiple-versions = "deny"
+wildcards = "deny"
+# Prohibit specific crates entirely
+deny = []
+# Allow specific duplicate crate versions if needed
+skip = []
+
+[sources]
+# Require dependencies from known registries — no git deps, no local paths
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-git = []
