@@ -7,7 +7,7 @@ license.workspace = true
 repository.workspace = true
 documentation.workspace = true
 description = "SAX TOML/INI parser and editor. Zero-dependency, no footguns."
-keywords = ["toml", "ini", "parser", "editor", "format-preserving", "no-std", "config"]
+keywords = ["toml", "ini", "parser", "editor", "no-std"]
 categories = ["config", "parser-implementations", "text-editors", "no-std"]
 [features]
 default = ["std"]
